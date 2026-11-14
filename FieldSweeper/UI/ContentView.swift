@@ -128,6 +128,8 @@ struct ContentView: View {
             // 설정을 보는 동안은 시간을 멈춘다.
             if open { game.pause() } else if !isPaused { game.resume() }
         }
+        // 메인 화면, 일시정지·결과·이어하기 창, 확인 창, 설정 시트까지 모두 고른 언어를 따른다.
+        .environment(\.locale, language == "system" ? .current : Locale(identifier: language))
     }
 
     private func start(_ config: BoardConfig) {
