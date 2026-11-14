@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "ko",
   "strings": {
+    "%@ · %lld×%lld": {
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ · %2$lld×%3$lld"
+          }
+        }
+      }
+    },
     "%@ · %lld×%lld · 지뢰 %lld": {
       "localizations": {
         "en": {
@@ -45,6 +55,7 @@
         }
       }
     },
+    "%lld": {},
     "%lld × %lld · 지뢰 %lld": {
       "localizations": {
         "en": {
@@ -90,6 +101,7 @@
       }
     },
     "iPad 보드": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -112,6 +124,7 @@
       }
     },
     "iPhone 보드": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -200,6 +213,7 @@
       }
     },
     "고급": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -265,6 +279,28 @@
         }
       }
     },
+    "기기 설정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末の設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随系统"
+          }
+        }
+      }
+    },
     "기록 없음": {
       "localizations": {
         "en": {
@@ -288,6 +324,7 @@
       }
     },
     "기본": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -574,6 +611,7 @@
       }
     },
     "돌": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -596,6 +634,7 @@
       }
     },
     "라벤더": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -618,6 +657,7 @@
       }
     },
     "모래": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -662,6 +702,7 @@
       }
     },
     "바다": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -706,6 +747,7 @@
       }
     },
     "벚꽃": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1035,6 +1077,28 @@
         }
       }
     },
+    "언어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语言"
+          }
+        }
+      }
+    },
     "열기": {
       "localizations": {
         "en": {
@@ -1256,6 +1320,7 @@
       }
     },
     "잔디": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1300,6 +1365,7 @@
       }
     },
     "저장했어요. 다음에 열면 이어서 할 수 있어요": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1344,6 +1410,7 @@
       }
     },
     "전문가": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1388,6 +1455,7 @@
       }
     },
     "중급": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1564,6 +1632,7 @@
       }
     },
     "지옥": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1608,6 +1677,7 @@
       }
     },
     "초급": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {

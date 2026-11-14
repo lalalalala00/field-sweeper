@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var rows: Double
     @State private var mines: Double
     @AppStorage("showTimer") private var showTimer = true
+    @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.dismiss) private var dismiss
 
     init(current: BoardConfig, device: DeviceClass, onStart: @escaping (BoardConfig) -> Void) {
@@ -88,12 +89,27 @@ struct SettingsView: View {
                     FieldColorSection()
 
                     sectionLabel("옵션").padding(.top, 6)
-                    Toggle(isOn: $showTimer) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("시간 표시").font(.subheadline.weight(.medium))
-                            Text("끄면 시간 없이 느긋하게 플레이해요")
-                                .font(.caption)
-                                .foregroundStyle(Color(Palette.inkSoft))
+                    VStack(spacing: 12) {
+                        Toggle(isOn: $showTimer) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("시간 표시").font(.subheadline.weight(.medium))
+                                Text("끄면 시간 없이 느긋하게 플레이해요")
+                                    .font(.caption)
+                                    .foregroundStyle(Color(Palette.inkSoft))
+                            }
+                        }
+                        Divider()
+                        HStack {
+                            Text("언어").font(.subheadline.weight(.medium))
+                            Spacer()
+                            Picker("언어", selection: $language) {
+                                Text("기기 설정").tag("system")
+                                ForEach(AppLanguage.options, id: \.code) { option in
+                                    Text(verbatim: option.name).tag(option.code)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
                         }
                     }
                     .tint(Color(Palette.moss))
@@ -129,6 +145,8 @@ struct SettingsView: View {
                     .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(Palette.line)))
                 }
                 .padding(20)
+                // tr()로 옮긴 문구도 언어가 바뀌면 다시 그린다. 슬라이더 값은 이 뷰의 상태라 유지된다.
+                .id(language)
             }
             .background(Color(Palette.panel))
             .foregroundStyle(Color(Palette.ink))
@@ -147,6 +165,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .environment(\.locale, AppLanguage.locale)
         .onAppear(perform: clampMines)
         .onChange(of: cols) { clampMines() }
         .onChange(of: rows) { clampMines() }

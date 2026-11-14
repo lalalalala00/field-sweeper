@@ -1,62 +1,64 @@
 {
-  "sourceLanguage": "ko",
-  "strings": {
-    "CFBundleDisplayName": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Field Sweeper"
+  "sourceLanguage" : "ko",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Field Sweeper"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フィールドスイーパー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィールドスイーパー"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "필드 스위퍼"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "필드 스위퍼"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "田野扫雷"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "田野扫雷"
           }
         }
       }
     },
-    "CFBundleName": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Field Sweeper"
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Field Sweeper"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フィールドスイーパー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィールドスイーパー"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "필드 스위퍼"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "필드 스위퍼"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "田野扫雷"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "田野扫雷"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

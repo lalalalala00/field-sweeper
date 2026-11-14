@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var toast: String?
     @State private var toastID = UUID()
     @AppStorage("showTimer") private var showTimer = true
+    @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -30,6 +31,8 @@ struct ContentView: View {
                      onPause: pauseGame,
                      onSave: saveNow,
                      onSettings: { showSettings = true })
+            // tr()로 옮긴 문구(난이도 이름 등)도 언어가 바뀌면 다시 그린다.
+            .id(language)
             GeometryReader { geo in
                 BoardView(game: game, version: game.version, skinVersion: SkinStore.shared.version,
                           fitPitch: device.fitPitch) { i, alternate in
@@ -45,6 +48,7 @@ struct ContentView: View {
                 .onChange(of: geo.size) { _, size in boardSize = size }
             }
             ProgressFooter(game: game)
+                .id(language)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
@@ -412,7 +416,7 @@ struct ResumeCard: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(Color(Palette.inkSoft))
                 }
-                Text("\(snapshot.savedAt.formatted(.relative(presentation: .named))) 저장됨")
+                Text("\(snapshot.savedAt.formatted(.relative(presentation: .named).locale(AppLanguage.locale))) 저장됨")
                     .font(.caption)
                     .foregroundStyle(Color(Palette.inkSoft))
                 HStack(spacing: 8) {
@@ -479,9 +483,9 @@ struct ResultCard: View {
     }
 
     private func subtitle(won: Bool) -> String {
-        guard won else { return String(localized: "안전한 칸 \(game.safeLeft)개가 남아 있었어요") }
-        guard showTimer else { return String(localized: "지뢰를 모두 찾았어요") }
-        if game.isNewBest { return String(localized: "이 크기에서 가장 빠른 기록이에요") }
-        return RecordStore.best(for: game.config.recordKey).map { String(localized: "최고 기록 \(clock($0))") } ?? ""
+        guard won else { return String(localized: "안전한 칸 \(game.safeLeft)개가 남아 있었어요", bundle: AppLanguage.bundle) }
+        guard showTimer else { return String(localized: "지뢰를 모두 찾았어요", bundle: AppLanguage.bundle) }
+        if game.isNewBest { return String(localized: "이 크기에서 가장 빠른 기록이에요", bundle: AppLanguage.bundle) }
+        return RecordStore.best(for: game.config.recordKey).map { String(localized: "최고 기록 \(clock($0))", bundle: AppLanguage.bundle) } ?? ""
     }
 }
