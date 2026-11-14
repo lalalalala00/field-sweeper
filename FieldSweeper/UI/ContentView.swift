@@ -158,7 +158,7 @@ struct ContentView: View {
         Haptics.play(.flag)
         let id = UUID()
         toastID = id
-        withAnimation(.spring(duration: 0.3)) { toast = "저장했어요. 다음에 열면 이어서 할 수 있어요" }
+        withAnimation(.spring(duration: 0.3)) { toast = tr("저장했어요. 다음에 열면 이어서 할 수 있어요") }
         Task {
             try? await Task.sleep(for: .seconds(2.2))
             if toastID == id { withAnimation(.easeOut(duration: 0.25)) { toast = nil } }
@@ -215,7 +215,7 @@ struct TopPanel: View {
         VStack(alignment: .leading, spacing: 1) {
             Text("필드 스위퍼")
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
-            Text("\(game.config.name) · \(game.cols)×\(game.rows)")
+            Text("\(tr(game.config.name)) · \(game.cols)×\(game.rows)")
                 .font(.caption2)
                 .foregroundStyle(Color(Palette.inkSoft))
                 .lineLimit(1)
@@ -302,7 +302,7 @@ struct TopPanel: View {
             .background(Color(fill), in: RoundedRectangle(cornerRadius: 11))
     }
 
-    private func modeButton(_ title: String, icon: String, isFlag: Bool) -> some View {
+    private func modeButton(_ title: LocalizedStringKey, icon: String, isFlag: Bool) -> some View {
         let selected = flagMode == isFlag
         return Button {
             flagMode = isFlag
@@ -364,7 +364,7 @@ struct PauseCard: View {
                     .foregroundStyle(Color(Palette.moss))
                 Text("일시정지")
                     .font(.system(.title2, design: .rounded, weight: .heavy))
-                Text("\(game.config.name) · \(game.cols)×\(game.rows) · 지뢰 \(game.mines)")
+                Text("\(tr(game.config.name)) · \(game.cols)×\(game.rows) · 지뢰 \(game.mines)")
                     .font(.subheadline)
                     .foregroundStyle(Color(Palette.inkSoft))
                 if showTimer {
@@ -379,6 +379,7 @@ struct PauseCard: View {
                 }
                 .padding(.top, 8)
             }
+            .multilineTextAlignment(.center)
             .padding(24)
             .frame(maxWidth: 360)
         }
@@ -398,7 +399,7 @@ struct ResumeCard: View {
             VStack(spacing: 12) {
                 Text("지난 게임이 있어요")
                     .font(.system(.title2, design: .rounded, weight: .heavy))
-                Text("\(c.name) · \(snapshot.cols)×\(snapshot.rows) · 지뢰 \(c.mines)")
+                Text("\(tr(c.name)) · \(snapshot.cols)×\(snapshot.rows) · 지뢰 \(c.mines)")
                     .font(.subheadline)
                 VStack(spacing: 6) {
                     ProgressView(value: snapshot.progress)
@@ -411,7 +412,7 @@ struct ResumeCard: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(Color(Palette.inkSoft))
                 }
-                Text(snapshot.savedAt.formatted(.relative(presentation: .named)) + " 저장됨")
+                Text("\(snapshot.savedAt.formatted(.relative(presentation: .named))) 저장됨")
                     .font(.caption)
                     .foregroundStyle(Color(Palette.inkSoft))
                 HStack(spacing: 8) {
@@ -422,6 +423,7 @@ struct ResumeCard: View {
                 }
                 .padding(.top, 4)
             }
+            .multilineTextAlignment(.center)
             .padding(24)
             .frame(maxWidth: 360)
             .background(Color(Palette.panel), in: RoundedRectangle(cornerRadius: 22))
@@ -442,7 +444,7 @@ struct ResultCard: View {
         ZStack {
             Color.black.opacity(0.45).ignoresSafeArea().onTapGesture(perform: onView)
             VStack(spacing: 12) {
-                Text(won ? "지뢰 제거 완료" : "펑, 지뢰를 밟았어요")
+                Text(won ? LocalizedStringKey("지뢰 제거 완료") : LocalizedStringKey("펑, 지뢰를 밟았어요"))
                     .font(.system(.title2, design: .rounded, weight: .heavy))
                 if showTimer {
                     Text(clock(seconds))
@@ -468,6 +470,7 @@ struct ResultCard: View {
                 }
                 .padding(.top, 4)
             }
+            .multilineTextAlignment(.center)
             .padding(24)
             .frame(maxWidth: 360)
             .background(Color(Palette.panel), in: RoundedRectangle(cornerRadius: 22))
@@ -476,9 +479,9 @@ struct ResultCard: View {
     }
 
     private func subtitle(won: Bool) -> String {
-        guard won else { return "안전한 칸 \(game.safeLeft)개가 남아 있었어요" }
-        guard showTimer else { return "지뢰를 모두 찾았어요" }
-        if game.isNewBest { return "이 크기에서 가장 빠른 기록이에요" }
-        return RecordStore.best(for: game.config.recordKey).map { "최고 기록 \(clock($0))" } ?? ""
+        guard won else { return String(localized: "안전한 칸 \(game.safeLeft)개가 남아 있었어요") }
+        guard showTimer else { return String(localized: "지뢰를 모두 찾았어요") }
+        if game.isNewBest { return String(localized: "이 크기에서 가장 빠른 기록이에요") }
+        return RecordStore.best(for: game.config.recordKey).map { String(localized: "최고 기록 \(clock($0))") } ?? ""
     }
 }

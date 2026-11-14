@@ -41,11 +41,11 @@ struct SkinPickerView: View {
 
                 label("내 사진").padding(.top, 6)
                 PhotosPicker(selection: $photoItem, matching: .images) {
-                    Label(loadingPhoto ? "불러오는 중…" : "사진에서 고르기", systemImage: "photo.on.rectangle")
+                    Label(loadingPhoto ? LocalizedStringKey("불러오는 중…") : LocalizedStringKey("사진에서 고르기"), systemImage: "photo.on.rectangle")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(FieldButtonStyle())
-                Text(photoFailed ? "이 사진은 불러올 수 없어요. 다른 사진을 골라 주세요." : "사진의 가운데를 정사각형으로 잘라서 칸 안에 넣어요.")
+                Text(photoFailed ? LocalizedStringKey("이 사진은 불러올 수 없어요. 다른 사진을 골라 주세요.") : LocalizedStringKey("사진의 가운데를 정사각형으로 잘라서 칸 안에 넣어요."))
                     .font(.caption)
                     .foregroundStyle(Color(photoFailed ? Palette.flag : Palette.inkSoft))
             }
@@ -53,7 +53,7 @@ struct SkinPickerView: View {
         }
         .background(Color(Palette.panel))
         .foregroundStyle(Color(Palette.ink))
-        .navigationTitle("\(kind.title) 모양")
+        .navigationTitle(kind == .flag ? LocalizedStringKey("깃발 모양") : LocalizedStringKey("지뢰 모양"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
@@ -91,10 +91,10 @@ struct SkinPickerView: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(skin.label)
+        .accessibilityLabel(tr(skin.label))
     }
 
-    private func label(_ text: String) -> some View {
+    private func label(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(.caption.weight(.semibold))
             .kerning(0.8)

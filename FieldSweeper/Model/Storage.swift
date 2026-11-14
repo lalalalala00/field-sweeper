@@ -38,6 +38,11 @@ enum Persist {
     }
 }
 
+/// 변수에 담긴 한국어 문구(난이도 이름 등)를 현재 언어로 바꾼다. 번역이 없으면 그대로 쓴다.
+func tr(_ key: String) -> String {
+    Bundle.main.localizedString(forKey: key, value: key, table: nil)
+}
+
 func pad3(_ n: Int) -> String {
     n < 0 ? "-" + String(format: "%02d", min(-n, 99)) : String(format: "%03d", min(n, 999))
 }

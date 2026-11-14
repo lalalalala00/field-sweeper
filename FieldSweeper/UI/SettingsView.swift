@@ -21,9 +21,12 @@ struct SettingsView: View {
         _mines = State(initialValue: Double(max(c.mines, 1)))
     }
 
+    static let privacyURL = URL(string: "https://lalalalala00.github.io/field-sweeper/privacy.html")!
+    static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+
     private var maxMines: Int { max(1, Int(Double(Int(cols) * Int(rows)) * 0.4)) }
     private var density: Double { mines / (cols * rows) * 100 }
-    private var feel: String {
+    private var feel: LocalizedStringKey {
         switch density {
         case ..<15: "쉬움"
         case ..<20: "보통"
@@ -97,6 +100,33 @@ struct SettingsView: View {
                     .padding(14)
                     .background(Color(Palette.bg), in: RoundedRectangle(cornerRadius: 14))
                     .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(Palette.line)))
+
+                    sectionLabel("정보").padding(.top, 6)
+                    VStack(spacing: 0) {
+                        Link(destination: Self.privacyURL) {
+                            HStack {
+                                Text("개인정보 처리방침")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color(Palette.inkSoft))
+                            }
+                            .font(.subheadline)
+                            .padding(14)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        Divider().padding(.leading, 14)
+                        HStack {
+                            Text("버전")
+                            Spacer()
+                            Text(Self.appVersion).foregroundStyle(Color(Palette.inkSoft))
+                        }
+                        .font(.subheadline)
+                        .padding(14)
+                    }
+                    .background(Color(Palette.bg), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(Palette.line)))
                 }
                 .padding(20)
             }
@@ -106,7 +136,7 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Text(device.label)
+                    Text(tr(device.label))
                         .font(.caption)
                         .foregroundStyle(Color(Palette.inkSoft))
                 }
@@ -130,9 +160,9 @@ struct SettingsView: View {
         let skin = SkinStore.shared.skin(kind)
         return HStack(spacing: 12) {
             SkinTile(kind: kind, skin: skin, side: 40)
-            Text(kind.title).font(.subheadline.weight(.medium))
+            Text(tr(kind.title)).font(.subheadline.weight(.medium))
             Spacer()
-            Text(skin.label).font(.subheadline).foregroundStyle(Color(Palette.inkSoft))
+            Text(tr(skin.label)).font(.subheadline).foregroundStyle(Color(Palette.inkSoft))
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color(Palette.inkSoft))
@@ -141,14 +171,14 @@ struct SettingsView: View {
         .contentShape(Rectangle())
     }
 
-    private func sectionLabel(_ text: String) -> some View {
+    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(.caption.weight(.semibold))
             .kerning(0.8)
             .foregroundStyle(Color(Palette.inkSoft))
     }
 
-    private func sliderRow(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
+    private func sliderRow(_ title: LocalizedStringKey, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
         HStack(spacing: 12) {
             Text(title)
                 .font(.subheadline.weight(.medium))
@@ -175,7 +205,7 @@ private struct FieldColorSection: View {
                     Button { store.setField(.preset(preset.id)) } label: {
                         VStack(spacing: 4) {
                             Swatch(palette: preset.palette)
-                            Text(preset.name).font(.caption)
+                            Text(tr(preset.name)).font(.caption)
                         }
                         .padding(4)
                         .overlay(
@@ -242,13 +272,13 @@ private struct PresetCard: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(preset.name)
+                Text(tr(preset.name))
                     .font(.system(.headline, design: .rounded, weight: .heavy))
                 Text("\(preset.cols) × \(preset.rows) · 지뢰 \(preset.mines)")
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundStyle(Color(Palette.inkSoft))
-                Text(best.map { "최고 \(clock($0))" } ?? "기록 없음")
+                (best.map { Text("최고 \(clock($0))") } ?? Text("기록 없음"))
                     .font(.caption)
                     .foregroundStyle(Color(Palette.inkSoft))
             }

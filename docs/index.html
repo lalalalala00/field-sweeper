@@ -141,6 +141,7 @@ input[type="range"] { width: 100%; accent-color: var(--moss); height: 28px; }
 .opt span { display: flex; flex-direction: column; gap: 2px; }
 .opt b { font-weight: 500; font-size: .92rem; }
 .opt small { font-size: .78rem; color: var(--ink-soft); }
+.opt select { font: inherit; font-size: .9rem; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
 .opt input { width: 22px; height: 22px; accent-color: var(--moss); flex: none; }
 
 /* 깃발/지뢰 모양 */
@@ -358,6 +359,16 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
       <span><b>시간 표시</b><small>끄면 시간 없이 느긋하게 플레이해요</small></span>
       <input type="checkbox" id="optTimer" checked>
     </label>
+    <label class="opt" for="optLang">
+      <span><b>언어</b></span>
+      <select id="optLang">
+        <option value="auto">자동</option>
+        <option value="ko">한국어</option>
+        <option value="ja">日本語</option>
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+      </select>
+    </label>
   </div>
 </div>
 
@@ -442,6 +453,129 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     set(k, v) { try { localStorage.setItem('fs:' + k, JSON.stringify(v)); } catch {} },
   };
 
+  // ── 번역: 한국어 문구를 키로 쓰고 [영어, 일본어, 중국어 간체]를 둔다 ──
+  const I18N = {"필드 스위퍼": ["Field Sweeper", "フィールドスイーパー", "田野扫雷"],
+    "남은 지뢰": ["Mines left", "残りの地雷", "剩余地雷"],
+    "시간": ["Time", "時間", "用时"],
+    "더보기": ["More", "その他", "更多"],
+    "저장": ["Save", "保存", "保存"],
+    "설정": ["Settings", "設定", "设置"],
+    "탭 동작": ["Tap action", "タップ操作", "点击操作"],
+    "열기": ["Open", "開く", "翻开"],
+    "깃발": ["Flag", "旗", "旗子"],
+    "새 게임": ["New Game", "新しいゲーム", "新游戏"],
+    "일시정지": ["Pause", "一時停止", "暂停"],
+    "지뢰밭": ["Minefield", "地雷原", "雷区"],
+    "남은 안전한 칸": ["Safe cells left", "残りの安全なマス", "剩余安全格"],
+    "남은 칸 {0}": ["{0} cells left", "残り {0} マス", "剩余 {0} 格"],
+    "{0}행 {1}열": ["Row {0}, column {1}", "{0}行 {1}列", "第{0}行 第{1}列"],
+    "완료": ["Done", "完了", "完成"],
+    "기본 난이도": ["Difficulty", "難易度", "难度"],
+    "커스텀": ["Custom", "カスタム", "自定义"],
+    "가로": ["Width", "横", "宽"],
+    "세로": ["Height", "縦", "高"],
+    "지뢰": ["Mines", "地雷", "地雷"],
+    "지뢰 밀도": ["Mine density", "地雷の密度", "地雷密度"],
+    "쉬움": ["Easy", "やさしい", "简单"],
+    "보통": ["Normal", "ふつう", "普通"],
+    "어려움": ["Hard", "むずかしい", "困难"],
+    "극악": ["Brutal", "鬼むず", "极难"],
+    "커스텀으로 시작": ["Start Custom Game", "カスタムで始める", "开始自定义游戏"],
+    "{0} × {1} · 지뢰 {2}": ["{0} × {1} · {2} mines", "{0} × {1} · 地雷 {2}", "{0} × {1} · 地雷 {2}"],
+    "최고 {0}": ["Best {0}", "ベスト {0}", "最佳 {0}"],
+    "기록 없음": ["No record yet", "記録なし", "暂无纪录"],
+    "iPad 보드": ["iPad boards", "iPad 用ボード", "iPad 棋盘"],
+    "iPhone 보드": ["iPhone boards", "iPhone 用ボード", "iPhone 棋盘"],
+    "초급": ["Beginner", "初級", "初级"],
+    "중급": ["Intermediate", "中級", "中级"],
+    "고급": ["Advanced", "上級", "高级"],
+    "전문가": ["Expert", "エキスパート", "专家"],
+    "지옥": ["Hell", "地獄", "地狱"],
+    "모양": ["Style", "デザイン", "样式"],
+    "기본": ["Default", "デフォルト", "默认"],
+    "내 사진": ["My Photo", "自分の写真", "我的照片"],
+    "이모지 입력 (예: 🐸)": ["Type an emoji (e.g. 🐸)", "絵文字を入力（例: 🐸）", "输入表情（例如：🐸）"],
+    "{0} 이모지 직접 입력": ["Custom emoji for {0}", "{0}の絵文字を入力", "输入{0}表情"],
+    "적용": ["Apply", "適用", "应用"],
+    "사진 고르기": ["Choose Photo", "写真を選ぶ", "选择照片"],
+    "이 브라우저에 저장하지 못했어요. 이번에만 적용돼요.": ["Couldn't save in this browser. It applies only for now.", "このブラウザに保存できませんでした。今回だけ反映されます。", "无法在此浏览器中保存，仅本次有效。"],
+    "이 사진은 불러올 수 없어요. 다른 사진을 골라 주세요.": ["This photo can't be loaded. Please choose another one.", "この写真は読み込めません。別の写真を選んでください。", "无法加载这张照片，请选择其他照片。"],
+    "필드 색": ["Field Color", "フィールドの色", "场地颜色"],
+    "잔디": ["Grass", "芝生", "草地"],
+    "바다": ["Sea", "海", "海洋"],
+    "모래": ["Sand", "砂", "沙地"],
+    "벚꽃": ["Blossom", "桜", "樱花"],
+    "라벤더": ["Lavender", "ラベンダー", "薰衣草"],
+    "돌": ["Stone", "石", "石头"],
+    "직접 고르기": ["Pick Your Own", "自分で選ぶ", "自定义颜色"],
+    "덮인 칸": ["Covered cells", "閉じたマス", "未翻开的格子"],
+    "열린 칸": ["Opened cells", "開いたマス", "已翻开的格子"],
+    "옵션": ["Options", "オプション", "选项"],
+    "시간 표시": ["Show Timer", "タイマーを表示", "显示计时"],
+    "끄면 시간 없이 느긋하게 플레이해요": ["Turn off to play at your own pace", "オフにすると時間を気にせず遊べます", "关闭后可以不计时，轻松游戏"],
+    "언어": ["Language", "言語", "语言"],
+    "자동": ["Auto", "自動", "自动"],
+    "지뢰 제거 완료": ["Field cleared!", "クリア！", "扫雷成功！"],
+    "펑, 지뢰를 밟았어요": ["Boom! You hit a mine", "ドカン！地雷を踏みました", "砰！踩到地雷了"],
+    "최고 기록": ["New best", "ベスト記録", "最佳纪录"],
+    "최고 기록 {0}": ["Best time {0}", "ベスト記録 {0}", "最佳纪录 {0}"],
+    "보드 보기": ["View Board", "盤面を見る", "查看棋盘"],
+    "다시 하기": ["Play Again", "もう一度", "再玩一次"],
+    "지뢰를 모두 찾았어요": ["You found every mine", "すべての地雷を見つけました", "找到了所有地雷"],
+    "이 크기에서 가장 빠른 기록이에요": ["Your fastest time on this board size", "このサイズでの最速記録です", "这是该尺寸的最快纪录"],
+    "안전한 칸 {0}개가 남아 있었어요": ["{0} safe cells were left", "安全なマスが {0} 個残っていました", "还剩 {0} 个安全格"],
+    "새 게임을 시작할까요?": ["Start a new game?", "新しいゲームを始めますか？", "要开始新游戏吗？"],
+    "지금 하던 게임은 사라져요.": ["Your current game will be lost.", "今のゲームは消えてしまいます。", "当前游戏将会丢失。"],
+    "취소": ["Cancel", "キャンセル", "取消"],
+    "계속하기": ["Resume", "再開", "继续"],
+    "{0} · {1}×{2} · 지뢰 {3}": ["{0} · {1}×{2} · {3} mines", "{0} · {1}×{2} · 地雷 {3}", "{0} · {1}×{2} · 地雷 {3}"],
+    "지난 게임이 있어요": ["You have an unfinished game", "前回のゲームがあります", "有一局未完成的游戏"],
+    "{0}% 진행": ["{0}% done", "{0}% 進行", "已完成 {0}%"],
+    "{0} 저장됨": ["Saved {0}", "{0}に保存", "{0}保存"],
+    "방금": ["just now", "たった今", "刚刚"],
+    "이어하기": ["Continue", "続きから", "继续游戏"],
+    "저장했어요. 다음에 열면 이어서 할 수 있어요": ["Saved. You can pick up where you left off next time.", "保存しました。次回は続きから遊べます。", "已保存。下次打开可以继续游戏。"]};
+  const LANGS = ['ko', 'ja', 'zh', 'en'];
+  let langPref = store.get('lang', 'auto');
+  const detectLang = () => {
+    for (const l of navigator.languages || [navigator.language]) {
+      const base = (l || '').toLowerCase().split('-')[0];
+      if (LANGS.includes(base)) return base;
+    }
+    return 'en';
+  };
+  let lang = langPref === 'auto' ? detectLang() : langPref;
+  function t(key, ...args) {
+    const row = I18N[key];
+    const text = lang === 'ko' || !row ? key : row[{ en: 0, ja: 1, zh: 2 }[lang]];
+    return text.replace(/\{(\d)\}/g, (_, i) => args[i]);
+  }
+  // 페이지에 적힌 한국어 문구와 속성을 기억해 두었다가 언어를 바꿀 때 다시 옮긴다
+  const staticText = [], staticAttr = [];
+  {
+    const hangul = /[가-힣]/;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => hangul.test(n.nodeValue) && !n.parentElement.closest('script, style') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP,
+    });
+    for (let n; (n = walker.nextNode());) staticText.push([n, n.nodeValue]);
+    document.querySelectorAll('[aria-label], [title], [placeholder]').forEach(el => {
+      for (const a of ['aria-label', 'title', 'placeholder']) {
+        const v = el.getAttribute(a);
+        if (v && hangul.test(v)) staticAttr.push([el, a, v]);
+      }
+    });
+  }
+  function applyStatic() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
+    document.title = t('필드 스위퍼');
+    for (const [node, v] of staticText) {
+      const m = v.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      node.nodeValue = m[1] + t(m[2]) + m[3];
+    }
+    for (const [el, a, v] of staticAttr) el.setAttribute(a, t(v));
+  }
+  applyStatic();
+
   let S = null, mode = 'dig', cells = [], tick = null;
   let showTimer = store.get('showTimer', true);
   function applyTimerOption() {
@@ -520,8 +654,8 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     return true;
   }
   function ago(ts) {
-    const s = (Date.now() - ts) / 1000, rtf = new Intl.RelativeTimeFormat('ko', { numeric: 'auto' });
-    if (s < 60) return '방금';
+    const s = (Date.now() - ts) / 1000, rtf = new Intl.RelativeTimeFormat(lang === 'zh' ? 'zh-Hans' : lang, { numeric: 'auto' });
+    if (s < 60) return t('방금');
     if (s < 3600) return rtf.format(-Math.round(s / 60), 'minute');
     if (s < 86400) return rtf.format(-Math.round(s / 3600), 'hour');
     return rtf.format(-Math.round(s / 86400), 'day');
@@ -530,11 +664,11 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     const n = sv.cols * sv.rows, safe = n - sv.mines.length;
     const pct = Math.round(sv.st.filter(v => v === 1).length / Math.max(1, safe) * 100);
     const p = PRESETS.find(p => p.id === sv.cfg.id);
-    $('rsInfo').textContent = `${p ? p.name : '커스텀'} · ${sv.cols}×${sv.rows} · 지뢰 ${sv.cfg.mines}`;
+    $('rsInfo').textContent = t('{0} · {1}×{2} · 지뢰 {3}', t(p ? p.name : '커스텀'), sv.cols, sv.rows, sv.cfg.mines);
     $('rsBar').style.width = pct + '%';
-    $('rsPct').textContent = pct + '% 진행';
+    $('rsPct').textContent = t('{0}% 진행', pct);
     $('rsTime').textContent = showTimer ? fmt(Math.floor(sv.elapsed / 1000)) : '';
-    $('rsWhen').textContent = ago(sv.savedAt) + ' 저장됨';
+    $('rsWhen').textContent = t('{0} 저장됨', ago(sv.savedAt));
     resumePending = true;
     $('resumeBox').hidden = false;
     $('rsGo').onclick = () => {
@@ -551,6 +685,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   });
   window.addEventListener('pagehide', saveGame);
 
+  const cellLabel = i => t('{0}행 {1}열', (i / S.cols | 0) + 1, i % S.cols + 1);
   function build() {
     board.style.setProperty('--cols', S.cols);
     board.classList.remove('over');
@@ -559,7 +694,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     for (let i = 0; i < S.cols * S.rows; i++) {
       const b = document.createElement('button');
       b.className = 'c'; b.dataset.i = i; b.setAttribute('role', 'gridcell');
-      b.setAttribute('aria-label', `${(i / S.cols | 0) + 1}행 ${i % S.cols + 1}열`);
+      b.setAttribute('aria-label', cellLabel(i));
       cells.push(b); frag.appendChild(b);
     }
     board.replaceChildren(frag);
@@ -592,7 +727,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
 
   function hud() {
     const p = PRESETS.find(p => p.id === S.cfg.id);
-    $('lvl').textContent = `${p ? p.name : '커스텀'} · ${S.cols}×${S.rows}`;
+    $('lvl').textContent = `${t(p ? p.name : '커스텀')} · ${S.cols}×${S.rows}`;
     $('left').textContent = pad3(S.mines - S.flags);
     $('time').textContent = pad3(Math.floor(S.elapsed / 1000));
     $('restart').dataset.s = S.status;
@@ -600,7 +735,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     $('pauseBtn').disabled = S.status !== 'playing';
     const safe = Math.max(1, S.cols * S.rows - S.mines), left = safe - S.opened;
     $('safeFill').style.width = ((safe - left) / safe * 100) + '%';
-    $('safeLeft').textContent = `남은 칸 ${left}`;
+    $('safeLeft').textContent = t('남은 칸 {0}', left);
   }
 
   // ── 일시정지 ──
@@ -614,7 +749,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   function pauseGame() {
     if (!S || S.status !== 'playing' || resumePending) return;
     freeze();
-    $('psInfo').textContent = `${$('lvl').textContent} · 지뢰 ${S.mines}`;
+    $('psInfo').textContent = t('{0} · {1}×{2} · 지뢰 {3}', t(PRESETS.find(p => p.id === S.cfg.id)?.name || '커스텀'), S.cols, S.rows, S.mines);
     $('psTime').textContent = fmt(Math.floor(S.elapsed / 1000));
     $('psTime').hidden = !showTimer;
     $('pauseBox').hidden = false;
@@ -635,7 +770,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   $('saveBtn').onclick = () => {
     if (!S || S.status !== 'playing') return;
     saveGame();
-    showToast('저장했어요. 다음에 열면 이어서 할 수 있어요');
+    showToast(t('저장했어요. 다음에 열면 이어서 할 수 있어요'));
   };
 
   function startTimer() {
@@ -710,14 +845,14 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   function showResult(won) {
     const best = store.get('best', {})[recKey(S.cols, S.rows, S.mines)];
     const secs = Math.round(S.elapsed / 1000);
-    $('resTitle').textContent = won ? '지뢰 제거 완료' : '펑, 지뢰를 밟았어요';
+    $('resTitle').textContent = t(won ? '지뢰 제거 완료' : '펑, 지뢰를 밟았어요');
     $('resTime').textContent = fmt(secs);
     $('resTime').hidden = !showTimer;
     $('resBadge').hidden = !(showTimer && won && S.newBest);
     const safeLeft = S.cols * S.rows - S.mines - S.opened;
     $('resSub').textContent = won
-      ? !showTimer ? '지뢰를 모두 찾았어요' : (S.newBest ? '이 크기에서 가장 빠른 기록이에요' : `최고 기록 ${fmt(best)}`)
-      : `안전한 칸 ${safeLeft}개가 남아 있었어요`;
+      ? !showTimer ? t('지뢰를 모두 찾았어요') : (S.newBest ? t('이 크기에서 가장 빠른 기록이에요') : t('최고 기록 {0}', fmt(best)))
+      : t('안전한 칸 {0}개가 남아 있었어요', safeLeft);
     $('resultBox').hidden = false;
     $('resAgain').focus();
   }
@@ -796,7 +931,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   // ── 난이도 시트 ──
   const cC = $('cCols'), cR = $('cRows'), cM = $('cMines');
   cC.max = LIMIT.cols; cR.max = LIMIT.rows;
-  $('deviceChip').textContent = isTablet ? 'iPad 보드' : 'iPhone 보드';
+  $('deviceChip').textContent = t(isTablet ? 'iPad 보드' : 'iPhone 보드');
 
   function renderPresets() {
     const best = store.get('best', {});
@@ -805,7 +940,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
       b.className = 'preset';
       b.setAttribute('aria-current', S && S.cfg.id === p.id);
       const rec = best[recKey(p.cols, p.rows, p.mines)];
-      b.innerHTML = `<b>${p.name}</b><span>${p.cols} × ${p.rows} · 지뢰 ${p.mines}</span><span>${rec ? '최고 ' + fmt(rec) : '기록 없음'}</span>`;
+      b.innerHTML = `<b>${t(p.name)}</b><span>${t('{0} × {1} · 지뢰 {2}', p.cols, p.rows, p.mines)}</span><span>${rec ? t('최고 {0}', fmt(rec)) : t('기록 없음')}</span>`;
       b.onclick = () => { closeSettings(); newGame({ ...p }); };
       return b;
     }));
@@ -817,7 +952,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     $('oCols').textContent = cC.value; $('oRows').textContent = cR.value; $('oMines').textContent = cM.value;
     const d = +cM.value / cells * 100;
     $('oDensity').textContent = d.toFixed(1) + '%';
-    $('oFeel').textContent = d < 15 ? '쉬움' : d < 20 ? '보통' : d < 24 ? '어려움' : '극악';
+    $('oFeel').textContent = t(d < 15 ? '쉬움' : d < 20 ? '보통' : d < 24 ? '어려움' : '극악');
   }
   [cC, cR, cM].forEach(el => el.addEventListener('input', syncCustom));
   function openSettings() {
@@ -854,7 +989,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
 
   // ── 깃발/지뢰 모양 ──
   const SKIN_EMOJI = { flag: ['🚩', '⛳️', '📍', '🎌', '⭐️', '❤️', '🍋', '🔖'], mine: ['💣', '💥', '☠️', '👻', '🐛', '🍄', '🦠', '🔥'] };
-  const KIND_NAME = { flag: '깃발', mine: '지뢰' };
+  const kindName = k => t(k === 'flag' ? '깃발' : '지뢰');
   let skins = store.get('skins', null) || { flag: { type: 'classic' }, mine: { type: 'classic' } };
   const sameSkin = (a, b) => a.type === b.type && a.value === b.value;
   const cssStr = s => '"' + s.replace(/["\\]/g, '\\$&') + '"';
@@ -874,7 +1009,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     let saved = true;
     try { localStorage.setItem('fs:skins', JSON.stringify(skins)); } catch { saved = false; }
     $('skinNote').hidden = saved;
-    $('skinNote').textContent = '이 브라우저에 저장하지 못했어요. 이번에만 적용돼요.';
+    $('skinNote').textContent = t('이 브라우저에 저장하지 못했어요. 이번에만 적용돼요.');
     applySkins(); renderSkins();
   }
   function skinPreview(kind, skin) {
@@ -887,12 +1022,12 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
       const cur = skins[kind];
       const wrap = document.createElement('div');
       wrap.className = 'skin';
-      wrap.innerHTML = `<div class="skin-head"><b>${KIND_NAME[kind]}</b><span>${cur.type === 'classic' ? '기본' : cur.type === 'photo' ? '내 사진' : ''}</span></div>
+      wrap.innerHTML = `<div class="skin-head"><b>${kindName(kind)}</b><span>${cur.type === 'classic' ? t('기본') : cur.type === 'photo' ? t('내 사진') : ''}</span></div>
         <div class="choices"></div>
         <div class="skin-custom">
-          <input type="text" id="emoji-${kind}" placeholder="이모지 입력 (예: 🐸)" aria-label="${KIND_NAME[kind]} 이모지 직접 입력" autocomplete="off">
-          <button class="btn" data-apply>적용</button>
-          <label class="btn" for="photo-${kind}">사진 고르기</label>
+          <input type="text" id="emoji-${kind}" placeholder="${t('이모지 입력 (예: 🐸)')}" aria-label="${t('{0} 이모지 직접 입력', kindName(kind))}" autocomplete="off">
+          <button class="btn" data-apply>${t('적용')}</button>
+          <label class="btn" for="photo-${kind}">${t('사진 고르기')}</label>
           <input type="file" id="photo-${kind}" accept="image/*" hidden>
         </div>`;
       if (cur.type === 'emoji') wrap.querySelector('.skin-head span').textContent = cur.value;
@@ -902,7 +1037,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
         const b = document.createElement('button');
         b.className = 'choice ' + (kind === 'flag' ? 'turf' : 'ground');
         b.setAttribute('aria-pressed', sameSkin(o, cur));
-        b.setAttribute('aria-label', o.type === 'classic' ? '기본' : o.type === 'photo' ? '내 사진' : o.value);
+        b.setAttribute('aria-label', o.type === 'classic' ? t('기본') : o.type === 'photo' ? t('내 사진') : o.value);
         b.appendChild(skinPreview(kind, o));
         b.onclick = () => setSkin(kind, o);
         return b;
@@ -925,7 +1060,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
           URL.revokeObjectURL(img.src);
           setSkin(kind, { type: 'photo', value: c.toDataURL('image/jpeg', 0.85) });
         };
-        img.onerror = () => { $('skinNote').hidden = false; $('skinNote').textContent = '이 사진은 불러올 수 없어요. 다른 사진을 골라 주세요.'; };
+        img.onerror = () => { $('skinNote').hidden = false; $('skinNote').textContent = t('이 사진은 불러올 수 없어요. 다른 사진을 골라 주세요.'); };
         img.src = URL.createObjectURL(file);
       });
       return wrap;
@@ -977,7 +1112,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
       const b = document.createElement('button');
       b.className = 'swatch-btn';
       b.setAttribute('aria-pressed', fieldStyle.type === 'preset' && fieldStyle.id === p.id);
-      b.innerHTML = `<span class="swatch" style="background:${c.board}"><i style="background:${c.turf}"></i><i style="background:${c.ground}"></i></span>${p.name}`;
+      b.innerHTML = `<span class="swatch" style="background:${c.board}"><i style="background:${c.turf}"></i><i style="background:${c.ground}"></i></span>${t(p.name)}`;
       b.onclick = () => setField({ type: 'preset', id: p.id });
       return b;
     }));
@@ -991,6 +1126,18 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyField);
   new MutationObserver(applyField).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   applyField();
+
+  // ── 언어 바꾸기 ──
+  $('optLang').value = langPref;
+  $('optLang').addEventListener('change', e => {
+    langPref = e.target.value;
+    store.set('lang', langPref);
+    lang = langPref === 'auto' ? detectLang() : langPref;
+    applyStatic();
+    $('deviceChip').textContent = t(isTablet ? 'iPad 보드' : 'iPhone 보드');
+    hud(); renderPresets(); renderSkins(); renderField(); syncCustom();
+    cells.forEach((b, i) => b.setAttribute('aria-label', cellLabel(i)));
+  });
 
   new ResizeObserver(fit).observe(field);
 
