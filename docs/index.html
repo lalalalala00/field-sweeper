@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="iPhone과 iPad에서 즐기는 지뢰찾기. 보드 크기와 지뢰 수, 깃발·지뢰 모양, 필드 색을 바꿀 수 있어요.">
+<meta name="theme-color" content="#eef1ea">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* 기본 리셋: 화면 끝까지 쓰되 노치·홈 인디케이터 영역은 피한다 */
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); color-scheme: light; }
+body { margin: 0; font: 14px/1.4 system-ui, -apple-system, sans-serif; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>필드 스위퍼</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;600&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-screen app — HUD bar on top, the board fills the middle and scrolls inside itself when it is bigger than the screen, tool bar at the bottom */
+:root {
+  --bg: #eef1ea; --panel: #f9fbf6; --well: #e2e7d9; --raised: #fbfcf9; --ink: #1f2a1c; --ink-soft: #5b6955; --line: #d3dbc9;
+  --turf: #79a259; --turf-hi: #98c077; --turf-lo: #5a8241;
+  --ground: #e3e8db; --board: #c5cfb8;
+  --flag: #e0452c; --mine: #22291e; --hit: #f4a290; --moss: #355f25; --on-moss: #f4f8ee;
+  --n1: #2b5fc4; --n2: #2a823b; --n3: #cf3b27; --n4: #5a3ea6; --n5: #973816; --n6: #10808a; --n7: #1f2a1c; --n8: #6c7766;
+  --scrim: rgba(24, 32, 20, .42);
+  --shape-flag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 2.5h2.2V22H6zM8.2 3.5 20 8.6 8.2 13.7z'/%3E%3C/svg%3E");
+  --shape-mine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6.4'/%3E%3Cpath d='M11 1.5h2v5h-2zM11 17.5h2v5h-2zM1.5 11h5v2h-5zM17.5 11h5v2h-5zM4.2 5.6l1.4-1.4 3.4 3.4-1.4 1.4zM15 16.4l1.4-1.4 3.4 3.4-1.4 1.4zM4.2 18.4l3.4-3.4 1.4 1.4-3.4 3.4zM15 7.6l3.4-3.4 1.4 1.4-3.4 3.4z'/%3E%3C/svg%3E");
+  --f-display: "Jua", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --f-mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10150e; --panel: #182016; --well: #182016; --raised: #26301f; --ink: #e4ead9; --ink-soft: #9aa78f; --line: #2b3527;
+  --turf: #3e6331; --turf-hi: #507d40; --turf-lo: #2a4622;
+  --ground: #1d2519; --board: #0b0f09;
+  --flag: #ff6b4e; --mine: #e9eee0; --hit: #7c2b1f; --moss: #9cd17c; --on-moss: #13200e;
+  --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; --n5: #ffad73; --n6: #5fd6d8; --n7: #e4ead9; --n8: #9aa78f;
+  --scrim: rgba(0, 0, 0, .6); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #10150e; --panel: #182016; --well: #182016; --raised: #26301f; --ink: #e4ead9; --ink-soft: #9aa78f; --line: #2b3527;
+  --turf: #3e6331; --turf-hi: #507d40; --turf-lo: #2a4622;
+  --ground: #1d2519; --board: #0b0f09;
+  --flag: #ff6b4e; --mine: #e9eee0; --hit: #7c2b1f; --moss: #9cd17c; --on-moss: #13200e;
+  --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; --n5: #ffad73; --n6: #5fd6d8; --n7: #e4ead9; --n8: #9aa78f;
+  --scrim: rgba(0, 0, 0, .6); color-scheme: dark;
+}
+
+html { height: 100%; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--f-body); overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--moss); outline-offset: 2px; }
+
+.app { height: 100%; display: flex; flex-direction: column; gap: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px; max-width: 1600px; margin: 0 auto; }
+
+/* HUD */
+.hud { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; flex-direction: column; min-width: 0; }
+.brand h1 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 1.35rem; line-height: 1.1; }
+.brand .lvl { font-size: .78rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats { display: flex; align-items: center; gap: 8px; }
+.stat { display: flex; flex-direction: column; align-items: center; min-width: 58px; padding: 4px 10px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+.stat .k { font-size: .62rem; letter-spacing: .06em; color: var(--ink-soft); }
+.stat .v { font-family: var(--f-mono); font-size: 1.15rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.restart { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; }
+.restart svg { width: 22px; height: 22px; }
+.restart[data-s="lost"] { background: var(--hit); }
+.restart[data-s="won"] { background: var(--moss); color: var(--on-moss); }
+
+/* Field */
+.field { flex: 1; min-height: 0; position: relative; display: flex; overflow: auto; border-radius: 14px;
+  touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.board { margin: auto; display: grid; gap: var(--gap); padding: var(--gap); background: var(--board); border-radius: calc(var(--cell) * .32);
+  grid-template-columns: repeat(var(--cols), var(--cell)); }
+.c { width: var(--cell); height: var(--cell); border: 0; padding: 0; margin: 0; position: relative;
+  border-radius: calc(var(--cell) * .2); background: var(--turf);
+  box-shadow: inset 0 2px 0 var(--turf-hi), inset 0 -3px 0 var(--turf-lo);
+  font-family: var(--f-display); font-size: calc(var(--cell) * .6); line-height: 1; display: grid; place-items: center;
+  touch-action: pan-x pan-y; transition: transform .08s ease; }
+.c.down { transform: scale(.9); }
+.c.press::after { content: ""; position: absolute; inset: -3px; border-radius: inherit; border: 2px solid var(--flag); animation: grow .38s linear forwards; }
+@keyframes grow { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+.c.open { background: var(--ground); box-shadow: none; cursor: default; }
+.n1 { color: var(--n1); } .n2 { color: var(--n2); } .n3 { color: var(--n3); } .n4 { color: var(--n4); }
+.n5 { color: var(--n5); } .n6 { color: var(--n6); } .n7 { color: var(--n7); } .n8 { color: var(--n8); }
+.c.flag::before, .c.mine::before, .c.wrong::before { content: ""; width: 64%; height: 64%;
+  -webkit-mask: var(--shape) center / contain no-repeat; mask: var(--shape) center / contain no-repeat; }
+.c.flag::before { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 2.5h2.2V22H6zM8.2 3.5 20 8.6 8.2 13.7z'/%3E%3C/svg%3E"); background: var(--flag); animation: plant .18s ease-out; }
+@keyframes plant { from { transform: translateY(-30%) scale(.6); opacity: 0; } }
+.c.mine, .c.wrong { background: var(--ground); box-shadow: none; }
+.c.mine::before { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6.4'/%3E%3Cpath d='M11 1.5h2v5h-2zM11 17.5h2v5h-2zM1.5 11h5v2h-5zM17.5 11h5v2h-5zM4.2 5.6l1.4-1.4 3.4 3.4-1.4 1.4zM15 16.4l1.4-1.4 3.4 3.4-1.4 1.4zM4.2 18.4l3.4-3.4 1.4 1.4-3.4 3.4zM15 7.6l3.4-3.4 1.4 1.4-3.4 3.4z'/%3E%3C/svg%3E"); background: var(--mine); }
+.c.hit { background: var(--hit); }
+.c.wrong::before { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 2.5h2.2V22H6zM8.2 3.5 20 8.6 8.2 13.7z'/%3E%3C/svg%3E"); background: var(--ink-soft); opacity: .55; }
+.c.wrong::after { content: ""; position: absolute; width: 78%; height: 2px; background: var(--flag); transform: rotate(-45deg); border-radius: 2px; }
+.board.over .c:not(.open) { cursor: default; }
+
+/* Tools */
+.tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.seg { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+.seg button { border: 0; background: transparent; padding: 9px 16px; border-radius: 9px; display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: .92rem; color: var(--ink-soft); }
+.seg button[aria-pressed="true"] { background: var(--moss); color: var(--on-moss); }
+.seg .ico { width: 16px; height: 16px; background: currentColor; -webkit-mask: var(--shape) center / contain no-repeat; mask: var(--shape) center / contain no-repeat; }
+.ico.dig { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14.5 2.5 21.5 9.5 19.4 11.6 17.6 9.8 10.4 17l1.1 1.1-3.9 3.9a3 3 0 0 1-4.2 0l-.4-.4a3 3 0 0 1 0-4.2L6.9 13.5 8 14.6l7.2-7.2-1.8-1.8z'/%3E%3C/svg%3E"); }
+.ico.flg { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 2.5h2.2V22H6zM8.2 3.5 20 8.6 8.2 13.7z'/%3E%3C/svg%3E"); }
+.hint { font-size: .78rem; color: var(--ink-soft); flex: 1; min-width: 0; text-align: center; }
+.btn { border: 1px solid var(--line); background: var(--panel); padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: .92rem; }
+.btn.primary { background: var(--moss); color: var(--on-moss); border-color: transparent; }
+
+/* Overlays */
+.scrim { position: fixed; inset: 0; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; z-index: 20;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+@media (min-width: 700px) { .scrim { align-items: center; } }
+.sheet { width: 100%; max-width: 520px; max-height: 100%; overflow-y: auto; background: var(--panel); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 16px; border: 1px solid var(--line); animation: rise .22s ease-out; }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sheet h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 1.4rem; }
+.chip { font-size: .72rem; letter-spacing: .04em; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--ink-soft); }
+.x { border: 0; background: transparent; width: 36px; height: 36px; border-radius: 50%; font-size: 1.3rem; color: var(--ink-soft); }
+.label { font-size: .72rem; letter-spacing: .08em; color: var(--ink-soft); margin: 0; }
+.presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.preset { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.preset[aria-current="true"] { border-color: var(--moss); box-shadow: inset 0 0 0 1px var(--moss); }
+.preset b { font-family: var(--f-display); font-weight: 400; font-size: 1.1rem; }
+.preset span { font-size: .78rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.custom { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 3.2em 1fr 3.4em; align-items: center; gap: 10px; }
+.row label { font-size: .88rem; font-weight: 500; }
+.row output { font-family: var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--moss); height: 28px; }
+.density { display: flex; justify-content: space-between; font-size: .8rem; color: var(--ink-soft); }
+.density b { color: var(--ink); font-weight: 600; }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); cursor: pointer; }
+.opt span { display: flex; flex-direction: column; gap: 2px; }
+.opt b { font-weight: 500; font-size: .92rem; }
+.opt small { font-size: .78rem; color: var(--ink-soft); }
+.opt input { width: 22px; height: 22px; accent-color: var(--moss); flex: none; }
+
+/* 깃발/지뢰 모양 */
+.skins { display: flex; flex-direction: column; gap: 8px; }
+.skin { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.skin-head { display: flex; justify-content: space-between; align-items: baseline; }
+.skin-head b { font-weight: 500; font-size: .92rem; }
+.skin-head span { font-size: .8rem; color: var(--ink-soft); }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { width: 44px; height: 44px; border-radius: 10px; border: 0; padding: 0; display: grid; place-items: center; font-size: 24px; line-height: 1; overflow: hidden; }
+.choice.turf { background: var(--turf); box-shadow: inset 0 2px 0 var(--turf-hi), inset 0 -3px 0 var(--turf-lo); }
+.choice.ground { background: var(--ground); }
+.choice[aria-pressed="true"] { outline: 2.5px solid var(--moss); outline-offset: 2px; }
+.choice .m { width: 64%; height: 64%; -webkit-mask: var(--shape) center / contain no-repeat; mask: var(--shape) center / contain no-repeat; }
+.choice .m.flag { --shape: var(--shape-flag); background: var(--flag); }
+.choice .m.mine { --shape: var(--shape-mine); background: var(--mine); }
+.choice img { width: 80%; height: 80%; object-fit: cover; border-radius: 22%; }
+.skin-custom { display: flex; gap: 8px; flex-wrap: wrap; }
+.skin-custom input[type="text"] { flex: 1; min-width: 0; width: 6em; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 1rem; }
+.skin-custom .btn { padding: 9px 14px; }
+.skin-note { margin: 0; font-size: .78rem; color: var(--flag); }
+body.flag-emoji .c.flag::before, body.flag-emoji .c.wrong::before,
+body.mine-emoji .c.mine::before { -webkit-mask: none; mask: none; background: none; width: auto; height: auto; font-size: calc(var(--cell) * .62); line-height: 1; }
+body.flag-emoji .c.flag::before, body.flag-emoji .c.wrong::before { content: var(--flag-emoji); }
+body.mine-emoji .c.mine::before { content: var(--mine-emoji); }
+body.flag-photo .c.flag::before, body.flag-photo .c.wrong::before,
+body.mine-photo .c.mine::before { -webkit-mask: none; mask: none; width: 80%; height: 80%; border-radius: 22%; }
+body.flag-photo .c.flag::before, body.flag-photo .c.wrong::before { background: var(--flag-img) center / cover; }
+body.mine-photo .c.mine::before { background: var(--mine-img) center / cover; }
+
+/* 상단 도구, 미리보기, 필드 색, 알림 */
+.icon-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn:disabled { opacity: .4; cursor: default; }
+.done { border: 0; background: none; color: var(--moss); font-weight: 600; font-size: .95rem; padding: 8px 4px; }
+.swatch-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 4px; border-radius: 12px; font-size: .75rem; color: var(--ink); }
+.swatch-btn[aria-pressed="true"] { outline: 2.5px solid var(--moss); }
+.swatch { display: flex; gap: 3px; padding: 4px; width: 58px; height: 34px; border-radius: 9px; }
+.swatch i { flex: 1; border-radius: 5px; }
+.field-custom { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .88rem; }
+.field-custom span { font-weight: 500; flex-basis: 100%; }
+.field-custom b { color: var(--moss); }
+.field-custom label { display: flex; align-items: center; gap: 8px; }
+.field-custom input[type="color"] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+body.ground-light { --n1: #2b5fc4; --n2: #2a823b; --n3: #cf3b27; --n4: #5a3ea6; --n5: #973816; --n6: #10808a; --n7: #1f2a1c; --n8: #6c7766; }
+body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; --n5: #ffad73; --n6: #5fd6d8; --n7: #e4ead9; --n8: #9aa78f; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30;
+  max-width: calc(100% - 32px); padding: 11px 16px; border-radius: 99px; background: var(--moss); color: var(--on-moss); font-size: .9rem; font-weight: 500; text-align: center; animation: rise .22s ease-out; }
+
+/* 상단 패널: 1줄 이름·지뢰·시간·더보기, 2줄 열기/깃발·새 게임·일시정지 */
+.panel { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 22px; background: var(--well); }
+.row1, .row2 { display: flex; align-items: center; gap: 14px; }
+.row2 { gap: 8px; }
+.panel .brand { flex: 1; min-width: 0; }
+.panel .brand h1 { font-size: 1.15rem; }
+.panel .stats { gap: 14px; }
+.panel .stat { flex-direction: row; align-items: center; gap: 4px; min-width: 0; padding: 0; background: none; border: 0; border-radius: 0; }
+.panel .stat svg { width: 17px; height: 17px; color: var(--ink-soft); flex: none; }
+.panel .stat .v { font-family: var(--f-body); font-size: 1.35rem; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.sq { width: 48px; height: 44px; flex: none; display: grid; place-items: center; border: 0; border-radius: 12px; background: var(--raised); color: var(--ink); }
+.sq svg { width: 20px; height: 20px; }
+.sq:disabled { opacity: .4; cursor: default; }
+.sq.restart[data-s="lost"] { background: var(--hit); }
+.sq.restart[data-s="won"] { background: var(--moss); color: var(--on-moss); }
+.panel .seg { flex: 1; min-width: 0; background: var(--raised); }
+.panel .seg button { flex: 1; justify-content: center; }
+.ico.open { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='4' y='4' width='16' height='16' rx='3' fill='none' stroke='black' stroke-width='2' stroke-dasharray='3 2.4'/%3E%3C/svg%3E"); }
+.ico.flg { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 21V4h11l-2 4 2 4H5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.more { position: relative; flex: none; }
+.menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 15; min-width: 160px; padding: 6px; display: flex; flex-direction: column;
+  border-radius: 14px; background: var(--raised); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .18); }
+.menu button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; background: none; border-radius: 9px; text-align: left; font-size: .95rem; }
+.menu button:hover:not(:disabled) { background: var(--well); }
+.menu button:disabled { opacity: .4; cursor: default; }
+.menu svg { width: 18px; height: 18px; flex: none; }
+@media (max-width: 380px) {
+  .row1 { gap: 10px; }
+  .panel .stats { gap: 10px; }
+  .panel .stat .v { font-size: 1.15rem; }
+}
+
+/* 상단 패널 최대한 좁게 */
+.app { padding-block: 6px; }
+.panel { gap: 6px; padding: 8px 10px; border-radius: 18px; }
+.row1 { gap: 12px; }
+.row2 { gap: 6px; }
+.panel .brand h1 { font-size: .95rem; }
+.panel .brand .lvl { font-size: .7rem; }
+.panel .stat .v { font-size: 1.2rem; }
+.panel .stat svg { width: 15px; height: 15px; }
+.panel .seg { flex: none; border: 0; padding: 2px; border-radius: 11px; margin-right: auto; } /* 새 게임 버튼을 오른쪽 끝으로 밀어 실수로 누르지 않게 */
+.panel .seg button { flex: none; padding: 8px 14px; }
+.row2 .sq.restart { margin-left: 14px; }
+.sq { width: 44px; height: 38px; border-radius: 11px; }
+.sq svg { width: 19px; height: 19px; }
+.btn.danger { background: var(--flag); color: #fff; border-color: transparent; }
+
+/* 넓은 화면: 상단 패널을 한 줄로 (이름 · 열기/깃발 · … · 지뢰 · 시간 · 새 게임 · 일시정지 · 더보기) */
+@media (min-width: 720px) {
+  .panel { flex-direction: row; align-items: center; gap: 12px; }
+  .row1, .row2 { display: contents; }
+  .panel .brand { flex: none; order: 1; margin-right: 8px; }
+  .panel .seg { order: 2; margin-right: 0; }
+  .panel .stats { order: 3; margin-left: auto; margin-right: 8px; }
+  .row2 .sq.restart { order: 4; margin-left: 14px; }
+  #pauseBtn { order: 5; }
+  .more { order: 6; }
+}
+
+/* 남은 안전한 칸 (얇은 막대) */
+.safe-row { display: flex; align-items: center; gap: 10px; padding: 0 4px; }
+.safe-bar { flex: 1; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.safe-bar i { display: block; height: 100%; width: 0; background: var(--moss); transition: width .25s ease-out; }
+#safeLeft { font-size: .7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* 일시정지: 보드를 가린다 */
+.scrim.pause { background: var(--bg); align-items: center; }
+.scrim.pause .sheet { background: transparent; border: 0; animation: none; }
+.pause-ico { width: 52px; height: 52px; }
+.pause-ico circle { fill: var(--moss); }
+.pause-ico rect { fill: var(--on-moss); }
+
+/* 이어하기 */
+.progress { width: 100%; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--moss); }
+.resume .density { width: 100%; }
+.result { text-align: center; align-items: center; max-width: 360px; }
+.result h2 { font-size: 1.8rem; }
+.result p { margin: 0; color: var(--ink-soft); }
+.big { font-family: var(--f-mono); font-size: 2.4rem; font-variant-numeric: tabular-nums; }
+.badge { font-size: .78rem; padding: 4px 10px; border-radius: 99px; background: var(--moss); color: var(--on-moss); }
+.actions { display: flex; gap: 8px; width: 100%; }
+.actions .btn { flex: 1; }
+
+@media (max-width: 420px) {
+  .brand h1 { font-size: 1.15rem; }
+  .stat { min-width: 50px; padding: 3px 8px; }
+  .hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="panel">
+    <div class="row1">
+      <div class="brand">
+        <h1>필드 스위퍼</h1>
+        <span class="lvl" id="lvl">중급</span>
+      </div>
+      <div class="stats">
+        <span class="stat" title="남은 지뢰"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"/></svg><span class="v" id="left" aria-label="남은 지뢰">000</span></span>
+        <span class="stat" id="timeStat" title="시간"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4M9 2h6"/></svg><span class="v" id="time" aria-label="시간">000</span></span>
+      </div>
+      <div class="more">
+        <button class="sq" id="moreBtn" aria-label="더보기" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+        <div class="menu" id="moreMenu" role="menu" hidden>
+          <button role="menuitem" id="saveBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>저장</button>
+          <button role="menuitem" id="openSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>설정</button>
+        </div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="seg" role="group" aria-label="탭 동작">
+        <button id="modeDig" aria-pressed="true"><span class="ico open"></span>열기</button>
+        <button id="modeFlag" aria-pressed="false"><span class="ico flg"></span>깃발</button>
+      </div>
+      <button class="sq restart" id="restart" aria-label="새 게임" data-s="ready"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button>
+      <button class="sq" id="pauseBtn" aria-label="일시정지" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg></button>
+    </div>
+  </header>
+
+  <main class="field" id="field">
+    <div class="board" id="board" role="grid" aria-label="지뢰밭"></div>
+  </main>
+  <div class="safe-row" aria-label="남은 안전한 칸">
+    <div class="safe-bar"><i id="safeFill"></i></div>
+    <span id="safeLeft">남은 칸 0</span>
+  </div>
+
+</div>
+
+<div class="scrim" id="settings" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="sheet-head">
+      <h2 id="setTitle">설정</h2>
+      <span class="chip" id="deviceChip">iPhone 보드</span>
+      <button class="done" id="closeSettings">완료</button>
+    </div>
+    <p class="label">기본 난이도</p>
+    <div class="presets" id="presets"></div>
+    <p class="label">커스텀</p>
+    <div class="custom">
+      <div class="row"><label for="cCols">가로</label><input type="range" id="cCols" min="5"><output id="oCols"></output></div>
+      <div class="row"><label for="cRows">세로</label><input type="range" id="cRows" min="5"><output id="oRows"></output></div>
+      <div class="row"><label for="cMines">지뢰</label><input type="range" id="cMines" min="1"><output id="oMines"></output></div>
+      <div class="density"><span>지뢰 밀도 <b id="oDensity">15%</b></span><span id="oFeel">보통</span></div>
+      <button class="btn primary" id="startCustom">커스텀으로 시작</button>
+    </div>
+    <p class="label">모양</p>
+    <div class="skins" id="skins"></div>
+    <p class="skin-note" id="skinNote" hidden></p>
+    <p class="label">필드 색</p>
+    <div class="custom">
+      <div class="choices" id="fieldPresets"></div>
+      <div class="field-custom">
+        <span>직접 고르기 <b id="fieldCustomMark" hidden>✓</b></span>
+        <label for="colTurf">덮인 칸 <input type="color" id="colTurf"></label>
+        <label for="colGround">열린 칸 <input type="color" id="colGround"></label>
+      </div>
+    </div>
+    <p class="label">옵션</p>
+    <label class="opt" for="optTimer">
+      <span><b>시간 표시</b><small>끄면 시간 없이 느긋하게 플레이해요</small></span>
+      <input type="checkbox" id="optTimer" checked>
+    </label>
+  </div>
+</div>
+
+<div class="scrim" id="resultBox" hidden>
+  <div class="sheet result" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <h2 id="resTitle">지뢰 제거 완료</h2>
+    <div class="big" id="resTime">0:00</div>
+    <span class="badge" id="resBadge" hidden>최고 기록</span>
+    <p id="resSub">최고 기록 0:00</p>
+    <div class="actions">
+      <button class="btn" id="resView">보드 보기</button>
+      <button class="btn primary" id="resAgain">다시 하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<div class="scrim" id="confirmBox" hidden>
+  <div class="sheet result" role="alertdialog" aria-modal="true" aria-labelledby="cfTitle" aria-describedby="cfText">
+    <h2 id="cfTitle">새 게임을 시작할까요?</h2>
+    <p id="cfText">지금 하던 게임은 사라져요.</p>
+    <div class="actions">
+      <button class="btn" id="cfCancel">취소</button>
+      <button class="btn danger" id="cfOk">새 게임</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim pause" id="pauseBox" hidden>
+  <div class="sheet result" role="dialog" aria-modal="true" aria-labelledby="psTitle">
+    <svg class="pause-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><rect x="8.2" y="7" width="2.6" height="10" rx=".8"/><rect x="13.2" y="7" width="2.6" height="10" rx=".8"/></svg>
+    <h2 id="psTitle">일시정지</h2>
+    <p id="psInfo">중급 · 11×16 · 지뢰 35</p>
+    <div class="big" id="psTime">0:00</div>
+    <div class="actions">
+      <button class="btn" id="psNew">새 게임</button>
+      <button class="btn primary" id="psGo">계속하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="resumeBox" hidden>
+  <div class="sheet result resume" role="dialog" aria-modal="true" aria-labelledby="rsTitle">
+    <h2 id="rsTitle">지난 게임이 있어요</h2>
+    <p id="rsInfo">중급 · 11×16 · 지뢰 35</p>
+    <div class="progress"><i id="rsBar"></i></div>
+    <div class="density"><span id="rsPct">0% 진행</span><span id="rsTime"></span></div>
+    <p id="rsWhen">방금 저장됨</p>
+    <div class="actions">
+      <button class="btn" id="rsNew">새 게임</button>
+      <button class="btn primary" id="rsGo">이어하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const field = $('field'), board = $('board');
+
+  // iPad (744pt mini 이상)와 데스크톱은 큰 보드, iPhone은 터치하기 좋은 작은 보드
+  const isTablet = Math.min(screen.width, screen.height) >= 700;
+  const PRESETS = isTablet ? [
+    { id: 'easy', name: '초급', cols: 12, rows: 12, mines: 26 },
+    { id: 'normal', name: '중급', cols: 24, rows: 16, mines: 80 },
+    { id: 'hard', name: '고급', cols: 30, rows: 20, mines: 140 },
+    { id: 'expert', name: '전문가', cols: 36, rows: 24, mines: 210 },
+    { id: 'hell', name: '지옥', cols: 40, rows: 26, mines: 270 },
+  ] : [
+    { id: 'easy', name: '초급', cols: 9, rows: 9, mines: 13 },
+    { id: 'normal', name: '중급', cols: 11, rows: 16, mines: 35 },
+    { id: 'hard', name: '고급', cols: 13, rows: 24, mines: 72 },
+    { id: 'hell', name: '지옥', cols: 13, rows: 24, mines: 85 },
+  ];
+  const LIMIT = isTablet ? { cols: 50, rows: 50 } : { cols: 30, rows: 40 };
+  const MIN_PITCH = isTablet ? 28 : 28, MAX_PITCH = isTablet ? 54 : 46;
+  const LONG_MS = 380;
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('fs:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('fs:' + k, JSON.stringify(v)); } catch {} },
+  };
+
+  let S = null, mode = 'dig', cells = [], tick = null;
+  let showTimer = store.get('showTimer', true);
+  function applyTimerOption() {
+    $('timeStat').hidden = !showTimer;
+    $('optTimer').checked = showTimer;
+  }
+  $('optTimer').addEventListener('change', e => { showTimer = e.target.checked; store.set('showTimer', showTimer); applyTimerOption(); });
+  applyTimerOption();
+
+  const recKey = (c, r, m) => `${Math.min(c, r)}x${Math.max(c, r)}m${m}`;
+  const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const pad3 = n => (n < 0 ? '-' + String(-n).padStart(2, '0') : String(Math.min(n, 999)).padStart(3, '0'));
+
+  function nbrs(i) {
+    const { cols, rows } = S, x = i % cols, y = (i / cols) | 0, out = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && ny >= 0 && nx < cols && ny < rows) out.push(ny * cols + nx);
+    }
+    return out;
+  }
+
+  function newGame(cfg, keepSave = false) {
+    if (!keepSave) store.set('saved', null);
+    $('pauseBox').hidden = true;
+    let { cols, rows } = cfg;
+    // 화면 방향에 맞춰 긴 변을 맞춘다 (세로 화면이면 세로로 긴 보드)
+    const r = field.getBoundingClientRect();
+    if (r.width && r.height && cols !== rows && (r.height > r.width) !== (rows > cols)) [cols, rows] = [rows, cols];
+    const n = cols * rows;
+    S = { cfg, cols, rows, mines: cfg.mines, mine: new Uint8Array(n), adj: new Uint8Array(n), st: new Uint8Array(n),
+      status: 'ready', flags: 0, opened: 0, t0: 0, elapsed: 0, hit: -1 };
+    store.set('cfg', cfg);
+    stopTimer();
+    build();
+  }
+
+  function placeMines(safe) {
+    const n = S.cols * S.rows;
+    const avoid = new Set([safe]);
+    if (n - 9 >= S.mines) nbrs(safe).forEach(k => avoid.add(k));
+    const pool = [];
+    for (let i = 0; i < n; i++) if (!avoid.has(i)) pool.push(i);
+    for (let k = 0; k < S.mines; k++) {
+      const j = k + Math.floor(Math.random() * (pool.length - k));
+      [pool[k], pool[j]] = [pool[j], pool[k]];
+      S.mine[pool[k]] = 1;
+    }
+    computeAdj();
+  }
+
+  function computeAdj() {
+    for (let i = 0; i < S.cols * S.rows; i++) S.adj[i] = nbrs(i).reduce((a, k) => a + S.mine[k], 0);
+  }
+
+  // ── 저장 / 이어하기 ──
+  let resumePending = false;
+  function saveGame() {
+    if (!S || S.status !== 'playing' || resumePending) return;
+    const mines = [];
+    S.mine.forEach((m, i) => { if (m) mines.push(i); });
+    store.set('saved', { cfg: S.cfg, cols: S.cols, rows: S.rows, mines, st: [...S.st],
+      elapsed: S.paused ? S.elapsed : Date.now() - S.t0, savedAt: Date.now() });
+  }
+  function restoreSaved(sv) {
+    const n = sv.cols * sv.rows;
+    if (!sv.st || sv.st.length !== n || !Array.isArray(sv.mines)) return false;
+    S = { cfg: sv.cfg, cols: sv.cols, rows: sv.rows, mines: sv.cfg.mines, mine: new Uint8Array(n), adj: new Uint8Array(n),
+      st: Uint8Array.from(sv.st), status: 'playing', flags: 0, opened: 0, t0: Date.now() - sv.elapsed, elapsed: sv.elapsed, hit: -1 };
+    sv.mines.forEach(i => { if (i >= 0 && i < n) S.mine[i] = 1; });
+    computeAdj();
+    S.st.forEach(v => { if (v === 1) S.opened++; else if (v === 2) S.flags++; });
+    store.set('cfg', sv.cfg);
+    build(); startTimer();
+    return true;
+  }
+  function ago(ts) {
+    const s = (Date.now() - ts) / 1000, rtf = new Intl.RelativeTimeFormat('ko', { numeric: 'auto' });
+    if (s < 60) return '방금';
+    if (s < 3600) return rtf.format(-Math.round(s / 60), 'minute');
+    if (s < 86400) return rtf.format(-Math.round(s / 3600), 'hour');
+    return rtf.format(-Math.round(s / 86400), 'day');
+  }
+  function showResume(sv) {
+    const n = sv.cols * sv.rows, safe = n - sv.mines.length;
+    const pct = Math.round(sv.st.filter(v => v === 1).length / Math.max(1, safe) * 100);
+    const p = PRESETS.find(p => p.id === sv.cfg.id);
+    $('rsInfo').textContent = `${p ? p.name : '커스텀'} · ${sv.cols}×${sv.rows} · 지뢰 ${sv.cfg.mines}`;
+    $('rsBar').style.width = pct + '%';
+    $('rsPct').textContent = pct + '% 진행';
+    $('rsTime').textContent = showTimer ? fmt(Math.floor(sv.elapsed / 1000)) : '';
+    $('rsWhen').textContent = ago(sv.savedAt) + ' 저장됨';
+    resumePending = true;
+    $('resumeBox').hidden = false;
+    $('rsGo').onclick = () => {
+      resumePending = false; $('resumeBox').hidden = true;
+      if (!restoreSaved(sv)) newGame(S.cfg);
+    };
+    $('rsNew').onclick = () => { resumePending = false; $('resumeBox').hidden = true; store.set('saved', null); };
+  }
+  // 다른 탭이나 앱으로 가면 일시정지. 돌아와서 계속하기를 눌러야 다시 시작된다.
+  document.addEventListener('visibilitychange', () => {
+    if (!S || S.status !== 'playing' || !document.hidden) return;
+    pauseGame();
+    saveGame();
+  });
+  window.addEventListener('pagehide', saveGame);
+
+  function build() {
+    board.style.setProperty('--cols', S.cols);
+    board.classList.remove('over');
+    const frag = document.createDocumentFragment();
+    cells = [];
+    for (let i = 0; i < S.cols * S.rows; i++) {
+      const b = document.createElement('button');
+      b.className = 'c'; b.dataset.i = i; b.setAttribute('role', 'gridcell');
+      b.setAttribute('aria-label', `${(i / S.cols | 0) + 1}행 ${i % S.cols + 1}열`);
+      cells.push(b); frag.appendChild(b);
+    }
+    board.replaceChildren(frag);
+    cells.forEach((_, i) => paint(i));
+    fit(); hud();
+  }
+
+  function fit() {
+    if (!S) return;
+    const r = field.getBoundingClientRect();
+    let pitch = Math.floor(Math.min((r.width - 8) / S.cols, (r.height - 8) / S.rows));
+    pitch = Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
+    const gap = pitch >= 36 ? 3 : 2;
+    board.style.setProperty('--cell', (pitch - gap) + 'px');
+    board.style.setProperty('--gap', gap + 'px');
+  }
+
+  function paint(i) {
+    const el = cells[i], s = S.st[i];
+    let cls = 'c', txt = '';
+    if (s === 1) { cls += ' open'; const a = S.adj[i]; if (a) { txt = a; cls += ' n' + a; } }
+    else if (s === 2) cls += ' flag';
+    if (S.status === 'lost') {
+      if (S.mine[i] && s !== 2) cls = 'c mine' + (i === S.hit ? ' hit' : '');
+      else if (!S.mine[i] && s === 2) cls = 'c wrong';
+    }
+    el.className = cls;
+    if (el.textContent !== String(txt)) el.textContent = txt;
+  }
+
+  function hud() {
+    const p = PRESETS.find(p => p.id === S.cfg.id);
+    $('lvl').textContent = `${p ? p.name : '커스텀'} · ${S.cols}×${S.rows}`;
+    $('left').textContent = pad3(S.mines - S.flags);
+    $('time').textContent = pad3(Math.floor(S.elapsed / 1000));
+    $('restart').dataset.s = S.status;
+    $('saveBtn').disabled = S.status !== 'playing';
+    $('pauseBtn').disabled = S.status !== 'playing';
+    const safe = Math.max(1, S.cols * S.rows - S.mines), left = safe - S.opened;
+    $('safeFill').style.width = ((safe - left) / safe * 100) + '%';
+    $('safeLeft').textContent = `남은 칸 ${left}`;
+  }
+
+  // ── 일시정지 ──
+  let settingsFroze = false;
+  function freeze() {
+    if (S && S.status === 'playing' && !S.paused) { S.elapsed = Date.now() - S.t0; S.paused = true; stopTimer(); }
+  }
+  function unfreeze() {
+    if (S && S.status === 'playing' && S.paused) { S.paused = false; S.t0 = Date.now() - S.elapsed; startTimer(); }
+  }
+  function pauseGame() {
+    if (!S || S.status !== 'playing' || resumePending) return;
+    freeze();
+    $('psInfo').textContent = `${$('lvl').textContent} · 지뢰 ${S.mines}`;
+    $('psTime').textContent = fmt(Math.floor(S.elapsed / 1000));
+    $('psTime').hidden = !showTimer;
+    $('pauseBox').hidden = false;
+    $('psGo').focus();
+  }
+  function resumeGame() { $('pauseBox').hidden = true; unfreeze(); }
+  $('pauseBtn').onclick = pauseGame;
+  $('psGo').onclick = resumeGame;
+  $('psNew').onclick = () => newGame(S.cfg);
+
+  let toastTimer = null;
+  function showToast(text) {
+    $('toast').textContent = text;
+    $('toast').hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { $('toast').hidden = true; }, 2200);
+  }
+  $('saveBtn').onclick = () => {
+    if (!S || S.status !== 'playing') return;
+    saveGame();
+    showToast('저장했어요. 다음에 열면 이어서 할 수 있어요');
+  };
+
+  function startTimer() {
+    stopTimer();
+    tick = setInterval(() => { S.elapsed = Date.now() - S.t0; $('time').textContent = pad3(Math.floor(S.elapsed / 1000)); }, 250);
+  }
+  function stopTimer() { if (tick) clearInterval(tick); tick = null; }
+
+  function reveal(i) {
+    if (S.status === 'ready') { placeMines(i); S.status = 'playing'; S.t0 = Date.now(); startTimer(); }
+    if (S.st[i] !== 0) return;
+    if (S.mine[i]) return lose(i);
+    const stack = [i];
+    while (stack.length) {
+      const k = stack.pop();
+      if (S.st[k] !== 0) continue;
+      S.st[k] = 1; S.opened++; paint(k);
+      if (S.adj[k] === 0) for (const m of nbrs(k)) if (S.st[m] === 0) stack.push(m);
+    }
+    checkWin();
+  }
+
+  function chord(i) {
+    const ns = nbrs(i);
+    const flags = ns.filter(k => S.st[k] === 2).length;
+    if (flags !== S.adj[i]) { ns.forEach(k => { if (S.st[k] === 0) blink(k); }); return; }
+    for (const k of ns) { if (S.status !== 'playing') break; if (S.st[k] === 0) reveal(k); }
+  }
+
+  function blink(k) { const el = cells[k]; el.classList.add('down'); setTimeout(() => el.classList.remove('down'), 140); }
+
+  function toggleFlag(i) {
+    if (S.st[i] === 1) return;
+    S.st[i] = S.st[i] === 2 ? 0 : 2;
+    S.flags += S.st[i] === 2 ? 1 : -1;
+    paint(i); hud();
+  }
+
+  function act(i, alt) {
+    if (S.status === 'won' || S.status === 'lost') return;
+    const flagging = alt !== (mode === 'flag');
+    if (S.st[i] === 1) chord(i);
+    else if (flagging) { if (S.status !== 'ready') toggleFlag(i); else reveal(i); }
+    else if (S.st[i] === 0) reveal(i);
+    hud();
+    saveGame();
+  }
+
+  function lose(i) {
+    S.status = 'lost'; S.hit = i; S.elapsed = Date.now() - S.t0; stopTimer();
+    store.set('saved', null);
+    board.classList.add('over');
+    cells.forEach((_, k) => paint(k)); hud();
+    setTimeout(() => showResult(false), 750);
+  }
+
+  function checkWin() {
+    if (S.status !== 'playing' || S.opened !== S.cols * S.rows - S.mines) return;
+    S.status = 'won'; S.elapsed = Date.now() - S.t0; stopTimer();
+    store.set('saved', null);
+    for (let k = 0; k < S.st.length; k++) if (S.mine[k] && S.st[k] !== 2) { S.st[k] = 2; paint(k); }
+    S.flags = S.mines;
+    board.classList.add('over');
+    const key = recKey(S.cols, S.rows, S.mines), secs = Math.max(1, Math.round(S.elapsed / 1000));
+    const best = store.get('best', {});
+    S.newBest = !best[key] || secs < best[key];
+    if (S.newBest) { best[key] = secs; store.set('best', best); }
+    hud();
+    setTimeout(() => showResult(true), 350);
+  }
+
+  function showResult(won) {
+    const best = store.get('best', {})[recKey(S.cols, S.rows, S.mines)];
+    const secs = Math.round(S.elapsed / 1000);
+    $('resTitle').textContent = won ? '지뢰 제거 완료' : '펑, 지뢰를 밟았어요';
+    $('resTime').textContent = fmt(secs);
+    $('resTime').hidden = !showTimer;
+    $('resBadge').hidden = !(showTimer && won && S.newBest);
+    const safeLeft = S.cols * S.rows - S.mines - S.opened;
+    $('resSub').textContent = won
+      ? !showTimer ? '지뢰를 모두 찾았어요' : (S.newBest ? '이 크기에서 가장 빠른 기록이에요' : `최고 기록 ${fmt(best)}`)
+      : `안전한 칸 ${safeLeft}개가 남아 있었어요`;
+    $('resultBox').hidden = false;
+    $('resAgain').focus();
+  }
+
+  // ── 입력: 탭 = 파기, 길게 누르기 = 깃발, 우클릭 = 깃발 ──
+  let press = null, lastLong = 0;
+  const cancelPress = () => {
+    if (!press) return;
+    clearTimeout(press.timer); press.el.classList.remove('down', 'press'); press = null;
+  };
+  board.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const el = e.target.closest('.c'); if (!el) return;
+    cancelPress();
+    const i = +el.dataset.i;
+    press = { i, el, x: e.clientX, y: e.clientY, long: false };
+    el.classList.add('down');
+    if (S.st[i] !== 1 && S.status !== 'won' && S.status !== 'lost') el.classList.add('press');
+    press.timer = setTimeout(() => {
+      if (!press) return;
+      press.long = true; lastLong = Date.now();
+      el.classList.remove('down', 'press');
+      act(i, true);
+    }, LONG_MS);
+  });
+  board.addEventListener('pointermove', e => {
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress();
+  });
+  board.addEventListener('pointerup', () => {
+    if (!press) return;
+    const p = press; cancelPress();
+    if (!p.long) act(p.i, false);
+  });
+  board.addEventListener('pointercancel', cancelPress);
+  board.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') cancelPress(); });
+  board.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (Date.now() - lastLong < 900) return;
+    const el = e.target.closest('.c'); if (el) act(+el.dataset.i, true);
+  });
+  // 키보드: Enter/Space = 파기 (click with detail 0), F = 깃발
+  board.addEventListener('click', e => {
+    if (e.detail !== 0) return;
+    const el = e.target.closest('.c'); if (el) act(+el.dataset.i, false);
+  });
+  board.addEventListener('keydown', e => {
+    const el = e.target.closest('.c'); if (!el) return;
+    if (e.key === 'f' || e.key === 'F') { act(+el.dataset.i, true); return; }
+    const d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -S.cols, ArrowDown: S.cols }[e.key];
+    if (d) { e.preventDefault(); cells[+el.dataset.i + d]?.focus(); }
+  });
+
+  function setMode(m) {
+    mode = m;
+    $('modeDig').setAttribute('aria-pressed', m === 'dig');
+    $('modeFlag').setAttribute('aria-pressed', m === 'flag');
+  }
+  $('modeDig').onclick = () => setMode('dig');
+  $('modeFlag').onclick = () => setMode('flag');
+  // 진행 중인 게임이 있으면 지우기 전에 묻는다
+  let confirmFroze = false;
+  function closeConfirm() {
+    $('confirmBox').hidden = true;
+    if (confirmFroze) { confirmFroze = false; if ($('pauseBox').hidden) unfreeze(); }
+  }
+  $('restart').onclick = () => {
+    if (S.status !== 'playing') return newGame(S.cfg);
+    if (!S.paused) { freeze(); confirmFroze = true; }
+    $('confirmBox').hidden = false;
+    $('cfCancel').focus();
+  };
+  $('cfCancel').onclick = closeConfirm;
+  $('cfOk').onclick = () => { confirmFroze = false; $('confirmBox').hidden = true; newGame(S.cfg); };
+  $('confirmBox').addEventListener('click', e => { if (e.target.id === 'confirmBox') closeConfirm(); });
+
+  // ── 난이도 시트 ──
+  const cC = $('cCols'), cR = $('cRows'), cM = $('cMines');
+  cC.max = LIMIT.cols; cR.max = LIMIT.rows;
+  $('deviceChip').textContent = isTablet ? 'iPad 보드' : 'iPhone 보드';
+
+  function renderPresets() {
+    const best = store.get('best', {});
+    $('presets').replaceChildren(...PRESETS.map(p => {
+      const b = document.createElement('button');
+      b.className = 'preset';
+      b.setAttribute('aria-current', S && S.cfg.id === p.id);
+      const rec = best[recKey(p.cols, p.rows, p.mines)];
+      b.innerHTML = `<b>${p.name}</b><span>${p.cols} × ${p.rows} · 지뢰 ${p.mines}</span><span>${rec ? '최고 ' + fmt(rec) : '기록 없음'}</span>`;
+      b.onclick = () => { closeSettings(); newGame({ ...p }); };
+      return b;
+    }));
+  }
+  function syncCustom() {
+    const cells = +cC.value * +cR.value;
+    cM.max = Math.max(1, Math.floor(cells * 0.4));
+    if (+cM.value > +cM.max) cM.value = cM.max;
+    $('oCols').textContent = cC.value; $('oRows').textContent = cR.value; $('oMines').textContent = cM.value;
+    const d = +cM.value / cells * 100;
+    $('oDensity').textContent = d.toFixed(1) + '%';
+    $('oFeel').textContent = d < 15 ? '쉬움' : d < 20 ? '보통' : d < 24 ? '어려움' : '극악';
+  }
+  [cC, cR, cM].forEach(el => el.addEventListener('input', syncCustom));
+  function openSettings() {
+    const c = store.get('custom', null) || { cols: S.cols, rows: S.rows, mines: S.mines };
+    cC.value = Math.min(c.cols, LIMIT.cols); cR.value = Math.min(c.rows, LIMIT.rows); cM.max = 9999; cM.value = c.mines;
+    syncCustom(); renderPresets();
+    // 설정을 보는 동안은 시간을 멈춘다
+    if (S && S.status === 'playing' && !S.paused) { freeze(); settingsFroze = true; }
+    $('settings').hidden = false;
+  }
+  function closeSettings() {
+    $('settings').hidden = true;
+    if (settingsFroze) { settingsFroze = false; if ($('pauseBox').hidden) unfreeze(); }
+  }
+  // ── 더보기 메뉴 (저장, 설정) ──
+  function toggleMenu(open) {
+    $('moreMenu').hidden = !open;
+    $('moreBtn').setAttribute('aria-expanded', open);
+  }
+  $('moreBtn').onclick = e => { e.stopPropagation(); toggleMenu($('moreMenu').hidden); };
+  document.addEventListener('click', e => { if (!e.target.closest('.more')) toggleMenu(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
+  $('openSettings').onclick = () => { toggleMenu(false); openSettings(); };
+  $('saveBtn').addEventListener('click', () => toggleMenu(false));
+  $('closeSettings').onclick = closeSettings;
+  $('settings').addEventListener('click', e => { if (e.target.id === 'settings') closeSettings(); });
+  $('startCustom').onclick = () => {
+    const c = { id: 'custom', cols: +cC.value, rows: +cR.value, mines: +cM.value };
+    store.set('custom', c); closeSettings(); newGame(c);
+  };
+  $('resAgain').onclick = () => { $('resultBox').hidden = true; newGame(S.cfg); };
+  $('resView').onclick = () => { $('resultBox').hidden = true; };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSettings(); $('resultBox').hidden = true; } });
+
+  // ── 깃발/지뢰 모양 ──
+  const SKIN_EMOJI = { flag: ['🚩', '⛳️', '📍', '🎌', '⭐️', '❤️', '🍋', '🔖'], mine: ['💣', '💥', '☠️', '👻', '🐛', '🍄', '🦠', '🔥'] };
+  const KIND_NAME = { flag: '깃발', mine: '지뢰' };
+  let skins = store.get('skins', null) || { flag: { type: 'classic' }, mine: { type: 'classic' } };
+  const sameSkin = (a, b) => a.type === b.type && a.value === b.value;
+  const cssStr = s => '"' + s.replace(/["\\]/g, '\\$&') + '"';
+
+  function applySkins() {
+    const root = document.documentElement;
+    for (const k of ['flag', 'mine']) {
+      const s = skins[k];
+      document.body.classList.toggle(k + '-emoji', s.type === 'emoji');
+      document.body.classList.toggle(k + '-photo', s.type === 'photo');
+      if (s.type === 'emoji') root.style.setProperty(`--${k}-emoji`, cssStr(s.value));
+      if (s.type === 'photo') root.style.setProperty(`--${k}-img`, `url("${s.value}")`);
+    }
+  }
+  function setSkin(kind, skin) {
+    skins = { ...skins, [kind]: skin };
+    let saved = true;
+    try { localStorage.setItem('fs:skins', JSON.stringify(skins)); } catch { saved = false; }
+    $('skinNote').hidden = saved;
+    $('skinNote').textContent = '이 브라우저에 저장하지 못했어요. 이번에만 적용돼요.';
+    applySkins(); renderSkins();
+  }
+  function skinPreview(kind, skin) {
+    if (skin.type === 'emoji') { const s = document.createElement('span'); s.textContent = skin.value; return s; }
+    if (skin.type === 'photo') { const i = new Image(); i.src = skin.value; i.alt = ''; return i; }
+    const m = document.createElement('span'); m.className = 'm ' + kind; return m;
+  }
+  function renderSkins() {
+    $('skins').replaceChildren(...['flag', 'mine'].map(kind => {
+      const cur = skins[kind];
+      const wrap = document.createElement('div');
+      wrap.className = 'skin';
+      wrap.innerHTML = `<div class="skin-head"><b>${KIND_NAME[kind]}</b><span>${cur.type === 'classic' ? '기본' : cur.type === 'photo' ? '내 사진' : ''}</span></div>
+        <div class="choices"></div>
+        <div class="skin-custom">
+          <input type="text" id="emoji-${kind}" placeholder="이모지 입력 (예: 🐸)" aria-label="${KIND_NAME[kind]} 이모지 직접 입력" autocomplete="off">
+          <button class="btn" data-apply>적용</button>
+          <label class="btn" for="photo-${kind}">사진 고르기</label>
+          <input type="file" id="photo-${kind}" accept="image/*" hidden>
+        </div>`;
+      if (cur.type === 'emoji') wrap.querySelector('.skin-head span').textContent = cur.value;
+      const opts = [{ type: 'classic' }, ...SKIN_EMOJI[kind].map(value => ({ type: 'emoji', value }))];
+      if (!opts.some(o => sameSkin(o, cur))) opts.push(cur);
+      wrap.querySelector('.choices').replaceChildren(...opts.map(o => {
+        const b = document.createElement('button');
+        b.className = 'choice ' + (kind === 'flag' ? 'turf' : 'ground');
+        b.setAttribute('aria-pressed', sameSkin(o, cur));
+        b.setAttribute('aria-label', o.type === 'classic' ? '기본' : o.type === 'photo' ? '내 사진' : o.value);
+        b.appendChild(skinPreview(kind, o));
+        b.onclick = () => setSkin(kind, o);
+        return b;
+      }));
+      const input = wrap.querySelector('input[type="text"]');
+      const apply = () => {
+        const ch = [...(window.Intl?.Segmenter ? [...new Intl.Segmenter().segment(input.value.trim())].map(s => s.segment) : input.value.trim())][0];
+        if (ch) setSkin(kind, { type: 'emoji', value: ch });
+      };
+      wrap.querySelector('[data-apply]').onclick = apply;
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') apply(); });
+      wrap.querySelector('input[type="file"]').addEventListener('change', e => {
+        const file = e.target.files[0]; if (!file) return;
+        const img = new Image();
+        img.onload = () => {
+          const side = 160, c = document.createElement('canvas');
+          c.width = c.height = side;
+          const s = Math.min(img.width, img.height);
+          c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, side, side);
+          URL.revokeObjectURL(img.src);
+          setSkin(kind, { type: 'photo', value: c.toDataURL('image/jpeg', 0.85) });
+        };
+        img.onerror = () => { $('skinNote').hidden = false; $('skinNote').textContent = '이 사진은 불러올 수 없어요. 다른 사진을 골라 주세요.'; };
+        img.src = URL.createObjectURL(file);
+      });
+      return wrap;
+    }));
+  }
+  applySkins();
+  renderSkins();
+
+  // ── 필드 색 (앞은 라이트, 뒤는 다크 모드 색) ──
+  const FIELD_PRESETS = [
+    { id: 'grass', name: '잔디', turf: ['#79a259', '#3e6331'], ground: ['#e3e8db', '#1d2519'], board: ['#c5cfb8', '#0b0f09'] },
+    { id: 'sea', name: '바다', turf: ['#4f8fc0', '#2c5878'], ground: ['#e1eaf0', '#172029'], board: ['#bfd0dc', '#0a0f14'] },
+    { id: 'sand', name: '모래', turf: ['#d2a35b', '#8a6631'], ground: ['#f1ebdf', '#231e17'], board: ['#d9ccb4', '#0f0c08'] },
+    { id: 'blossom', name: '벚꽃', turf: ['#e58fa8', '#9a4a63'], ground: ['#f6e9ed', '#24191c'], board: ['#e3c9d1', '#100a0c'] },
+    { id: 'lavender', name: '라벤더', turf: ['#9a86d0', '#5a4a8c'], ground: ['#ebe8f4', '#1c1a26'], board: ['#cfc8e3', '#0c0b12'] },
+    { id: 'stone', name: '돌', turf: ['#8c9399', '#4a5056'], ground: ['#e9eaeb', '#1b1d1f'], board: ['#c8cbce', '#0b0c0d'] },
+  ];
+  let fieldStyle = store.get('field', null) || { type: 'preset', id: 'grass' };
+  const hexToRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const rgbToHex = a => '#' + a.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+  const mixHex = (a, b, t) => { const x = hexToRgb(a), y = hexToRgb(b); return rgbToHex(x.map((v, i) => v * (1 - t) + y[i] * t)); };
+  const lum = h => { const [r, g, b] = hexToRgb(h); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+  const isDark = () => {
+    const t = document.documentElement.dataset.theme;
+    return t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  };
+  function fieldColors(f, dark) {
+    if (f.type === 'custom') {
+      return { turf: f.turf, hi: mixHex(f.turf, '#ffffff', .25), lo: mixHex(f.turf, '#000000', .25), ground: f.ground, board: mixHex(f.ground, '#000000', .18) };
+    }
+    const p = FIELD_PRESETS.find(p => p.id === f.id) || FIELD_PRESETS[0], k = dark ? 1 : 0;
+    return { turf: p.turf[k], hi: mixHex(p.turf[k], '#ffffff', dark ? .15 : .25), lo: mixHex(p.turf[k], '#000000', dark ? .3 : .25), ground: p.ground[k], board: p.board[k] };
+  }
+  function applyField() {
+    const c = fieldColors(fieldStyle, isDark()), st = document.documentElement.style;
+    st.setProperty('--turf', c.turf); st.setProperty('--turf-hi', c.hi); st.setProperty('--turf-lo', c.lo);
+    st.setProperty('--ground', c.ground); st.setProperty('--board', c.board);
+    // 열린 칸이 어두우면 밝은 숫자 색을 쓴다
+    const darkGround = lum(c.ground) < .45;
+    document.body.classList.toggle('ground-dark', darkGround);
+    document.body.classList.toggle('ground-light', !darkGround);
+    renderField();
+  }
+  function setField(f) { fieldStyle = f; store.set('field', f); applyField(); }
+  function renderField() {
+    const dark = isDark(), cur = fieldColors(fieldStyle, dark);
+    $('fieldPresets').replaceChildren(...FIELD_PRESETS.map(p => {
+      const c = fieldColors({ type: 'preset', id: p.id }, dark);
+      const b = document.createElement('button');
+      b.className = 'swatch-btn';
+      b.setAttribute('aria-pressed', fieldStyle.type === 'preset' && fieldStyle.id === p.id);
+      b.innerHTML = `<span class="swatch" style="background:${c.board}"><i style="background:${c.turf}"></i><i style="background:${c.ground}"></i></span>${p.name}`;
+      b.onclick = () => setField({ type: 'preset', id: p.id });
+      return b;
+    }));
+    $('fieldCustomMark').hidden = fieldStyle.type !== 'custom';
+    if (document.activeElement !== $('colTurf')) $('colTurf').value = cur.turf;
+    if (document.activeElement !== $('colGround')) $('colGround').value = cur.ground;
+  }
+  const onPick = () => setField({ type: 'custom', turf: $('colTurf').value, ground: $('colGround').value });
+  $('colTurf').addEventListener('input', onPick);
+  $('colGround').addEventListener('input', onPick);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyField);
+  new MutationObserver(applyField).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  applyField();
+
+  new ResizeObserver(fit).observe(field);
+
+  // ── 시작 / 실시간 업데이트 시 상태 보존 ──
+  function start(data) {
+    const snap = data && data.S;
+    if (snap && snap.cols) {
+      const n = snap.cols * snap.rows;
+      S = { ...snap, mine: Uint8Array.from(snap.mine), adj: Uint8Array.from(snap.adj), st: Uint8Array.from(snap.st) };
+      if (S.st.length !== n) return newGame(PRESETS[1]);
+      build();
+      if (S.status === 'playing') { S.t0 = Date.now() - S.elapsed; startTimer(); }
+      if (S.status === 'won' || S.status === 'lost') board.classList.add('over');
+      setMode(data.mode || 'dig');
+      return;
+    }
+    let cfg = store.get('cfg', null);
+    if (!cfg || (cfg.id !== 'custom' && !PRESETS.some(p => p.id === cfg.id))) cfg = PRESETS[1];
+    if (cfg.id !== 'custom') cfg = { ...PRESETS.find(p => p.id === cfg.id) };
+    const saved = store.get('saved', null);
+    newGame(cfg, true);
+    if (saved && saved.st && saved.cfg) showResume(saved);
+  }
+  start({});
+})();
+</script>
+</body>
+</html>
