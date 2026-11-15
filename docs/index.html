@@ -793,19 +793,20 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     const stack = [i];
     while (stack.length) {
       const k = stack.pop();
-      if (S.st[k] !== 0) continue;
+      if (S.st[k] !== 0 && S.st[k] !== 3) continue; // 물음표는 같이 열린다. 깃발은 열지 않는다.
       S.st[k] = 1; S.opened++; paint(k);
-      if (S.adj[k] === 0) for (const m of nbrs(k)) if (S.st[m] === 0) stack.push(m);
+      if (S.adj[k] === 0) for (const m of nbrs(k)) if (S.st[m] === 0 || S.st[m] === 3) stack.push(m);
     }
     checkWin();
   }
 
-  // 숫자 주변의 깃발 수가 맞으면 나머지 칸을 연다. 물음표 칸(3)은 직접 고르기 전까지 열지 않는다.
+  // 숫자 주변의 깃발 수가 맞으면 나머지 칸을 연다. 물음표(3)는 확정 표시가 아니라서 같이 연다.
   function chord(i) {
     const ns = nbrs(i);
     const flags = ns.filter(k => S.st[k] === 2).length;
-    if (flags !== S.adj[i]) { ns.forEach(k => { if (S.st[k] === 0) blink(k); }); return; }
-    for (const k of ns) { if (S.status !== 'playing') break; if (S.st[k] === 0) reveal(k); }
+    const closed = k => S.st[k] === 0 || S.st[k] === 3;
+    if (flags !== S.adj[i]) { ns.forEach(k => { if (closed(k)) blink(k); }); return; }
+    for (const k of ns) { if (S.status !== 'playing') break; if (closed(k)) { S.st[k] = 0; reveal(k); } }
   }
 
   function blink(k) { const el = cells[k]; el.classList.add('down'); setTimeout(() => el.classList.remove('down'), 140); }

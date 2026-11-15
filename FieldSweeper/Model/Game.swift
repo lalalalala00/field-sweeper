@@ -173,24 +173,27 @@ final class Game {
         }
         var stack = [i]
         while let k = stack.popLast() {
-            guard state[k] == .hidden else { continue }
+            // 물음표는 임시 메모라 빈칸이 퍼질 때 같이 열린다. 깃발은 열지 않는다.
+            guard state[k] == .hidden || state[k] == .question else { continue }
             state[k] = .open
             opened += 1
             if adjacent[k] == 0 {
-                for m in neighbors(of: k) where state[m] == .hidden { stack.append(m) }
+                for m in neighbors(of: k) where state[m] == .hidden || state[m] == .question { stack.append(m) }
             }
         }
         return checkWin() ? .win : .reveal
     }
 
-    /// 숫자 주변의 깃발 수가 맞으면 나머지 칸을 한 번에 연다. 물음표 칸은 직접 고르기 전까지 열지 않는다.
+    /// 숫자 주변의 깃발 수가 맞으면 나머지 칸을 한 번에 연다. 물음표는 확정 표시가 아니라서 같이 연다.
     private func chord(_ i: Int) -> Feedback {
         let ns = neighbors(of: i)
         let flagged = ns.filter { state[$0] == .flagged }.count
-        let hasHidden = ns.contains { state[$0] == .hidden }
-        guard adjacent[i] > 0, flagged == Int(adjacent[i]) else { return hasHidden ? .denied : .none }
+        let closed = { (k: Int) in self.state[k] == .hidden || self.state[k] == .question }
+        let hasClosed = ns.contains(where: closed)
+        guard adjacent[i] > 0, flagged == Int(adjacent[i]) else { return hasClosed ? .denied : .none }
         var result = Feedback.none
-        for k in ns where state[k] == .hidden && status == .playing {
+        for k in ns where closed(k) && status == .playing {
+            state[k] = .hidden
             let r = reveal(k)
             if r != .none { result = r }
         }
