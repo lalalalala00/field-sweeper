@@ -1,9 +1,11 @@
 import Foundation
 import Observation
 
-enum CellState: UInt8 { case hidden, open, flagged }
+enum CellState: UInt8 { case hidden, open, flagged, question }
+/// 탭했을 때 하는 일. 물음표는 지뢰 수와 승리 조건에 영향이 없는 임시 메모다.
+enum TapMode { case open, flag, question }
 enum GameStatus: Equatable { case ready, playing, won, lost }
-enum Feedback { case none, reveal, flag, unflag, denied, boom, win }
+enum Feedback { case none, reveal, flag, unflag, mark, denied, boom, win }
 
 @MainActor
 @Observable
@@ -118,15 +120,23 @@ final class Game {
         return out
     }
 
-    /// alternate: 길게 누르기. flagMode가 켜져 있으면 탭과 길게 누르기의 역할이 바뀐다.
-    func act(on i: Int, alternate: Bool, flagMode: Bool) -> Feedback {
+    /// alternate: 길게 누르기. 길게 누르면 깃발, 깃발 모드에서는 반대로 열기.
+    func act(on i: Int, alternate: Bool, mode: TapMode) -> Feedback {
         guard !isOver, state.indices.contains(i) else { return .none }
         defer { version += 1 }
         if state[i] == .open { return chord(i) }
-        let flagging = alternate != flagMode
-        if flagging && status != .ready { return toggleFlag(i) }
-        if state[i] == .hidden { return reveal(i) }
-        return .none
+        let effective: TapMode = alternate ? (mode == .flag ? .open : .flag) : mode
+        switch effective {
+        case .open:
+            // 깃발은 실수로 열지 않도록 막는다. 물음표는 지우고 연다.
+            if state[i] == .flagged { return .none }
+            if state[i] == .question { state[i] = .hidden }
+            return reveal(i)
+        case .flag:
+            return toggleFlag(i)
+        case .question:
+            return toggleQuestion(i)
+        }
     }
 
     private func toggleFlag(_ i: Int) -> Feedback {
@@ -138,6 +148,16 @@ final class Game {
         state[i] = .flagged
         flags += 1
         return .flag
+    }
+
+    private func toggleQuestion(_ i: Int) -> Feedback {
+        if state[i] == .question {
+            state[i] = .hidden
+            return .unflag
+        }
+        if state[i] == .flagged { flags -= 1 }
+        state[i] = .question
+        return .mark
     }
 
     private func reveal(_ i: Int) -> Feedback {
@@ -163,7 +183,7 @@ final class Game {
         return checkWin() ? .win : .reveal
     }
 
-    /// 숫자 주변의 깃발 수가 맞으면 나머지 칸을 한 번에 연다.
+    /// 숫자 주변의 깃발 수가 맞으면 나머지 칸을 한 번에 연다. 물음표 칸은 직접 고르기 전까지 열지 않는다.
     private func chord(_ i: Int) -> Feedback {
         let ns = neighbors(of: i)
         let flagged = ns.filter { state[$0] == .flagged }.count

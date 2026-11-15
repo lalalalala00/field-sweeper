@@ -701,6 +701,28 @@
         }
       }
     },
+    "물음표": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Question mark"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "はてなマーク"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "问号"
+          }
+        }
+      }
+    },
     "바다": {
       "extractionState": "stale",
       "localizations": {

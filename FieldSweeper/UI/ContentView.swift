@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     private let device = DeviceClass.current
     @State private var game: Game
-    @State private var flagMode = false
+    @State private var mode: TapMode = .open
     @State private var showSettings = false
     @State private var showResult = false
     @State private var boardSize: CGSize = .zero
@@ -25,7 +25,7 @@ struct ContentView: View {
         VStack(spacing: 10) {
             TopPanel(game: game,
                      showTimer: showTimer,
-                     flagMode: $flagMode,
+                     mode: $mode,
                      canSave: game.status == .playing && pendingResume == nil,
                      onRestart: askRestart,
                      onPause: pauseGame,
@@ -36,7 +36,7 @@ struct ContentView: View {
             GeometryReader { geo in
                 BoardView(game: game, version: game.version, skinVersion: SkinStore.shared.version,
                           fitPitch: device.fitPitch) { i, alternate in
-                    Haptics.play(game.act(on: i, alternate: alternate, flagMode: flagMode))
+                    Haptics.play(game.act(on: i, alternate: alternate, mode: mode))
                 }
                 .onAppear {
                     boardSize = geo.size
@@ -176,7 +176,7 @@ struct ContentView: View {
 struct TopPanel: View {
     let game: Game
     let showTimer: Bool
-    @Binding var flagMode: Bool
+    @Binding var mode: TapMode
     let canSave: Bool
     let onRestart: () -> Void
     let onPause: () -> Void
@@ -255,8 +255,10 @@ struct TopPanel: View {
 
     private var modeToggle: some View {
         HStack(spacing: 0) {
-            modeButton("열기", icon: "square.dashed", isFlag: false)
-            modeButton("깃발", icon: "flag", isFlag: true)
+            modeButton("열기", icon: "square.dashed", mode: .open)
+            modeButton("깃발", icon: "flag", mode: .flag)
+            modeButton(nil, icon: "questionmark", mode: .question)
+                .accessibilityLabel("물음표")
         }
         .padding(2)
         .background(Color(Palette.raised), in: RoundedRectangle(cornerRadius: 11))
@@ -308,12 +310,15 @@ struct TopPanel: View {
             .background(Color(fill), in: RoundedRectangle(cornerRadius: 11))
     }
 
-    private func modeButton(_ title: LocalizedStringKey, icon: String, isFlag: Bool) -> some View {
-        let selected = flagMode == isFlag
+    /// title이 없으면 아이콘만 보여준다.
+    private func modeButton(_ title: LocalizedStringKey?, icon: String, mode value: TapMode) -> some View {
+        let selected = mode == value
         return Button {
-            flagMode = isFlag
+            mode = value
         } label: {
-            Label(title, systemImage: icon)
+            Group {
+                if let title { Label(title, systemImage: icon) } else { Image(systemName: icon) }
+            }
                 .font(.system(.subheadline, weight: .semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)

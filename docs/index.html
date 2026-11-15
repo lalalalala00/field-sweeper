@@ -234,6 +234,9 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
 .panel .stat svg { width: 15px; height: 15px; }
 .panel .seg { flex: none; border: 0; padding: 2px; border-radius: 11px; margin-right: auto; } /* 새 게임 버튼을 오른쪽 끝으로 밀어 실수로 누르지 않게 */
 .panel .seg button { flex: none; padding: 8px 14px; }
+.panel .seg button.q-only { font-size: 1rem; font-weight: 800; padding: 8px 16px; }
+/* 물음표: 지뢰 수와 승리 조건에 영향 없는 임시 메모 */
+.c.question { color: rgba(255, 255, 255, .95); font-family: var(--f-display); }
 .row2 .sq.restart { margin-left: 14px; }
 .sq { width: 44px; height: 38px; border-radius: 11px; }
 .sq svg { width: 19px; height: 19px; }
@@ -309,6 +312,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
       <div class="seg" role="group" aria-label="탭 동작">
         <button id="modeDig" aria-pressed="true"><span class="ico open"></span>열기</button>
         <button id="modeFlag" aria-pressed="false"><span class="ico flg"></span>깃발</button>
+        <button id="modeQ" class="q-only" aria-pressed="false" aria-label="물음표">?</button>
       </div>
       <button class="sq restart" id="restart" aria-label="새 게임" data-s="ready"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button>
       <button class="sq" id="pauseBtn" aria-label="일시정지" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg></button>
@@ -456,6 +460,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   // ── 번역: 한국어 문구를 키로 쓰고 [영어, 일본어, 중국어 간체]를 둔다 ──
   const I18N = {"필드 스위퍼": ["Field Sweeper", "フィールドスイーパー", "田野扫雷"],
     "남은 지뢰": ["Mines left", "残りの地雷", "剩余地雷"],
+    "물음표": ["Question mark", "はてなマーク", "问号"],
     "시간": ["Time", "時間", "用时"],
     "더보기": ["More", "その他", "更多"],
     "저장": ["Save", "保存", "保存"],
@@ -717,9 +722,11 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     let cls = 'c', txt = '';
     if (s === 1) { cls += ' open'; const a = S.adj[i]; if (a) { txt = a; cls += ' n' + a; } }
     else if (s === 2) cls += ' flag';
+    else if (s === 3) { cls += ' question'; txt = '?'; }
     if (S.status === 'lost') {
-      if (S.mine[i] && s !== 2) cls = 'c mine' + (i === S.hit ? ' hit' : '');
+      if (S.mine[i] && s !== 2) { cls = 'c mine' + (i === S.hit ? ' hit' : ''); txt = ''; }
       else if (!S.mine[i] && s === 2) cls = 'c wrong';
+      else if (s === 3) { cls = 'c'; txt = ''; } // 지고 나면 지뢰가 없던 물음표는 지운다
     }
     el.className = cls;
     if (el.textContent !== String(txt)) el.textContent = txt;
@@ -793,6 +800,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     checkWin();
   }
 
+  // 숫자 주변의 깃발 수가 맞으면 나머지 칸을 연다. 물음표 칸(3)은 직접 고르기 전까지 열지 않는다.
   function chord(i) {
     const ns = nbrs(i);
     const flags = ns.filter(k => S.st[k] === 2).length;
@@ -809,12 +817,27 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     paint(i); hud();
   }
 
+  function toggleQuestion(i) {
+    if (S.st[i] === 1) return;
+    if (S.st[i] === 3) S.st[i] = 0;
+    else { if (S.st[i] === 2) S.flags--; S.st[i] = 3; }
+    paint(i); hud();
+  }
+
+  // 칸 상태: 0 덮임, 1 열림, 2 깃발, 3 물음표
   function act(i, alt) {
     if (S.status === 'won' || S.status === 'lost') return;
-    const flagging = alt !== (mode === 'flag');
     if (S.st[i] === 1) chord(i);
-    else if (flagging) { if (S.status !== 'ready') toggleFlag(i); else reveal(i); }
-    else if (S.st[i] === 0) reveal(i);
+    else {
+      // 길게 누르기는 깃발, 깃발 모드에서는 반대로 열기
+      const m = alt ? (mode === 'flag' ? 'dig' : 'flag') : mode;
+      if (m === 'dig') {
+        // 깃발은 실수로 열지 않도록 막는다. 물음표는 지우고 연다.
+        if (S.st[i] === 3) S.st[i] = 0;
+        if (S.st[i] === 0) reveal(i);
+      } else if (m === 'flag') toggleFlag(i);
+      else toggleQuestion(i);
+    }
     hud();
     saveGame();
   }
@@ -909,9 +932,11 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     mode = m;
     $('modeDig').setAttribute('aria-pressed', m === 'dig');
     $('modeFlag').setAttribute('aria-pressed', m === 'flag');
+    $('modeQ').setAttribute('aria-pressed', m === 'q');
   }
   $('modeDig').onclick = () => setMode('dig');
   $('modeFlag').onclick = () => setMode('flag');
+  $('modeQ').onclick = () => setMode('q');
   // 진행 중인 게임이 있으면 지우기 전에 묻는다
   let confirmFroze = false;
   function closeConfirm() {

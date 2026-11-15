@@ -203,6 +203,10 @@ final class BoardScrollView: UIScrollView {
                     case .flagged:
                         SkinRenderer.drawTurf(rect, radius)
                         SkinRenderer.draw(.flag, in: rect)
+                    case .question:
+                        SkinRenderer.drawTurf(rect, radius)
+                        // 지고 나면 지뢰가 없던 물음표는 지운다.
+                        if !lost { SkinRenderer.drawQuestion(in: rect) }
                     }
                 }
             }

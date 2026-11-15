@@ -77,6 +77,7 @@ enum Haptics {
         switch feedback {
         case .flag: medium.impactOccurred()
         case .unflag: light.impactOccurred(intensity: 0.6)
+        case .mark: light.impactOccurred(intensity: 0.45)
         case .denied: light.impactOccurred(intensity: 0.4)
         case .boom: notice.notificationOccurred(.error)
         case .win: notice.notificationOccurred(.success)

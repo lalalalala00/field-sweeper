@@ -27,6 +27,24 @@ enum SkinRenderer {
         str.draw(at: CGPoint(x: rect.midX - s.width / 2, y: rect.midY - s.height / 2))
     }
 
+    private static var questionCache: (size: CGFloat, string: NSAttributedString)?
+
+    /// 물음표 표시. 모양 바꾸기와 상관없이 늘 같은 "?"를 쓴다.
+    static func drawQuestion(in rect: CGRect) {
+        let size = (rect.height * 0.62).rounded()
+        let str: NSAttributedString
+        if let cached = questionCache, cached.size == size {
+            str = cached.string
+        } else {
+            let base = UIFont.systemFont(ofSize: size, weight: .heavy)
+            let font = base.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? base
+            str = NSAttributedString(string: "?", attributes: [.font: font, .foregroundColor: UIColor.white.withAlphaComponent(0.95)])
+            questionCache = (size, str)
+        }
+        let s = str.size()
+        str.draw(at: CGPoint(x: rect.midX - s.width / 2, y: rect.midY - s.height / 2))
+    }
+
     static func fill(_ rect: CGRect, _ radius: CGFloat, _ color: UIColor) {
         color.setFill()
         UIBezierPath(roundedRect: rect, cornerRadius: radius).fill()
