@@ -8,7 +8,6 @@ struct SettingsView: View {
     @State private var cols: Double
     @State private var rows: Double
     @State private var mines: Double
-    @AppStorage("showTimer") private var showTimer = true
     @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.dismiss) private var dismiss
 
@@ -21,9 +20,6 @@ struct SettingsView: View {
         _rows = State(initialValue: Double(min(max(c.rows, 5), device.limits.rows)))
         _mines = State(initialValue: Double(max(c.mines, 1)))
     }
-
-    static let privacyURL = URL(string: "https://lalalalala00.github.io/field-sweeper/privacy.html")!
-    static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
 
     private var maxMines: Int { max(1, Int(Double(Int(cols) * Int(rows)) * 0.4)) }
     private var density: Double { mines / (cols * rows) * 100 }
@@ -87,62 +83,6 @@ struct SettingsView: View {
 
                     sectionLabel("필드 색").padding(.top, 6)
                     FieldColorSection()
-
-                    sectionLabel("옵션").padding(.top, 6)
-                    VStack(spacing: 12) {
-                        Toggle(isOn: $showTimer) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("시간 표시").font(.subheadline.weight(.medium))
-                                Text("끄면 시간 없이 느긋하게 플레이해요")
-                                    .font(.caption)
-                                    .foregroundStyle(Color(Palette.inkSoft))
-                            }
-                        }
-                        Divider()
-                        HStack {
-                            Text("언어").font(.subheadline.weight(.medium))
-                            Spacer()
-                            Picker("언어", selection: $language) {
-                                Text("기기 설정").tag("system")
-                                ForEach(AppLanguage.options, id: \.code) { option in
-                                    Text(verbatim: option.name).tag(option.code)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .labelsHidden()
-                        }
-                    }
-                    .tint(Color(Palette.moss))
-                    .padding(14)
-                    .background(Color(Palette.bg), in: RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(Palette.line)))
-
-                    sectionLabel("정보").padding(.top, 6)
-                    VStack(spacing: 0) {
-                        Link(destination: Self.privacyURL) {
-                            HStack {
-                                Text("개인정보 처리방침")
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Color(Palette.inkSoft))
-                            }
-                            .font(.subheadline)
-                            .padding(14)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        Divider().padding(.leading, 14)
-                        HStack {
-                            Text("버전")
-                            Spacer()
-                            Text(Self.appVersion).foregroundStyle(Color(Palette.inkSoft))
-                        }
-                        .font(.subheadline)
-                        .padding(14)
-                    }
-                    .background(Color(Palette.bg), in: RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(Palette.line)))
                 }
                 .padding(20)
                 // tr()로 옮긴 문구도 언어가 바뀌면 다시 그린다. 슬라이더 값은 이 뷰의 상태라 유지된다.

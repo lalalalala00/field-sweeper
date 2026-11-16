@@ -32,18 +32,38 @@ enum Palette {
     @MainActor static var ground: UIColor { SkinStore.shared.fieldPalette.ground }
     @MainActor static var board: UIColor { SkinStore.shared.fieldPalette.board }
 
-    static let flag = UIColor.dynamic(0xe0452c, 0xff6b4e)
+    static let flag = UIColor.dynamic(0xd4553c, 0xff6b4e)
     static let mine = UIColor.dynamic(0x22291e, 0xe9eee0)
     static let hit = UIColor.dynamic(0xf4a290, 0x7c2b1f)
     static let moss = UIColor.dynamic(0x355f25, 0x9cd17c)
     static let onMoss = UIColor.dynamic(0xf4f8ee, 0x13200e)
 
     static let numbers: [UIColor] = [
-        .dynamic(0x2b5fc4, 0x84aaff), .dynamic(0x2a823b, 0x74d083),
-        .dynamic(0xcf3b27, 0xff7c68), .dynamic(0x5a3ea6, 0xb8a0ff),
+        .dynamic(0x3d67b0, 0x84aaff), .dynamic(0x3b7d47, 0x74d083),
+        .dynamic(0xc54a38, 0xff7c68), .dynamic(0x64519a, 0xb8a0ff),
         .dynamic(0x973816, 0xffad73), .dynamic(0x10808a, 0x5fd6d8),
         .dynamic(0x1f2a1c, 0xe4ead9), .dynamic(0x6c7766, 0x9aa78f),
     ]
+}
+
+/// 메인 화면, 기록, 공통 설정에 쓰는 메모지 색. Paper Ivory 종이에 Deep Green 잉크.
+enum Paper {
+    static let bg = UIColor.dynamic(0xf6f4ec, 0x151914)
+    static let ink = UIColor.dynamic(0x344a39, 0xdce5d6)
+    static let inkSoft = UIColor.dynamic(0x56645a, 0x9aa79a)
+    static let rule = UIColor.dynamic(0xb9c0b2, 0x3a4339)
+    static let sheet = UIColor.dynamic(0xeeebe0, 0x1d221c)
+}
+
+/// 보조 팔레트. 게임 카드 색 후보에서 남은 색들로, 시카쿠 영역 색이나 상태 표시처럼
+/// 게임 안에서 색이 더 필요할 때 쓴다. 카드의 대표 색(GameKind.fill)으로는 쓰지 않는다.
+enum SubPalette {
+    static let rose = UIColor.dynamic(0xd4a99e, 0x4a3330)
+    static let apricot = UIColor.dynamic(0xf1dccb, 0x3d3028)
+    static let lilac = UIColor.dynamic(0xc4bbd8, 0x37324a)
+    static let mint = UIColor.dynamic(0xbfd8cc, 0x2c3d35)
+
+    static let all: [UIColor] = [rose, apricot, lilac, mint]
 }
 
 extension Color {

@@ -16,6 +16,7 @@ struct ContentView: View {
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dismiss) private var dismiss
 
     init() {
         _game = State(initialValue: Game(config: DeviceClass.current.resolve(Persist.lastConfig)))
@@ -27,6 +28,7 @@ struct ContentView: View {
                      showTimer: showTimer,
                      mode: $mode,
                      canSave: game.status == .playing && pendingResume == nil,
+                     onBack: { dismiss() },
                      onRestart: askRestart,
                      onPause: pauseGame,
                      onSave: saveNow,
@@ -36,7 +38,10 @@ struct ContentView: View {
             GeometryReader { geo in
                 BoardView(game: game, version: game.version, skinVersion: SkinStore.shared.version,
                           fitPitch: device.fitPitch) { i, alternate in
+                    let wasReady = game.status == .ready
                     Haptics.play(game.act(on: i, alternate: alternate, mode: mode))
+                    // 첫 수를 둔 순간 한 판으로 센다.
+                    if wasReady && game.status != .ready { StatsStore.recordStart(.minesweeper) }
                 }
                 .onAppear {
                     boardSize = geo.size
@@ -74,6 +79,10 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
+        // 펜슬을 쥐거나 두 번 탭하면 열기 ↔ 깃발. 물음표 모드에서는 열기로 돌아간다.
+        .onPencilModeSwitch {
+            mode = mode == .open ? .flag : .open
+        }
         .animation(.easeOut(duration: 0.2), value: showResult)
         .animation(.easeOut(duration: 0.2), value: isPaused)
         .overlay(alignment: .bottom) {
@@ -97,6 +106,10 @@ struct ContentView: View {
         .onChange(of: game.status) { _, status in
             guard status == .won || status == .lost else { return }
             SaveStore.clear()
+            if status == .won {
+                StatsStore.recordWin(.minesweeper, difficulty: game.config.name,
+                                     seconds: Int(game.elapsed(at: .now).rounded()))
+            }
             let generation = game.generation
             Task {
                 try? await Task.sleep(for: .milliseconds(status == .won ? 400 : 800))
@@ -114,6 +127,12 @@ struct ContentView: View {
                 // 돌아오면 일시정지 화면에서 계속하기를 눌러야 다시 시작된다.
                 if game.status == .playing { isPaused = true }
             }
+        }
+        // 메인 화면으로 돌아가면 하던 게임을 저장해 두고, 다시 들어오면 이어하기를 묻는다.
+        .onDisappear {
+            guard pendingResume == nil, game.status == .playing else { return }
+            game.pause()
+            SaveStore.save(game.snapshot())
         }
         .alert("새 게임을 시작할까요?", isPresented: $confirmRestart) {
             Button("취소", role: .cancel) {}
@@ -178,6 +197,7 @@ struct TopPanel: View {
     let showTimer: Bool
     @Binding var mode: TapMode
     let canSave: Bool
+    let onBack: () -> Void
     let onRestart: () -> Void
     let onPause: () -> Void
     let onSave: () -> Void
@@ -187,6 +207,7 @@ struct TopPanel: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 12) {
+                backButton
                 brand.fixedSize()
                 modeToggle
                 Spacer(minLength: 16)
@@ -198,6 +219,7 @@ struct TopPanel: View {
 
             VStack(spacing: 6) {
                 HStack(spacing: 12) {
+                    backButton
                     brand.layoutPriority(1)
                     Spacer(minLength: 0)
                     stats
@@ -263,6 +285,12 @@ struct TopPanel: View {
         .padding(2)
         .background(Color(Palette.raised), in: RoundedRectangle(cornerRadius: 11))
         .fixedSize()
+    }
+
+    private var backButton: some View {
+        Button(action: onBack) { square(Image(systemName: "chevron.left")) }
+            .buttonStyle(.plain)
+            .accessibilityLabel("뒤로")
     }
 
     private var restartButton: some View {
@@ -342,7 +370,7 @@ struct ProgressFooter: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color(Palette.line))
-                    Capsule().fill(Color(Palette.moss))
+                    Capsule().fill(Color(Paper.ink))
                         .frame(width: geo.size.width * CGFloat(safe - left) / CGFloat(safe))
                 }
             }

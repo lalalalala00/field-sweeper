@@ -31,7 +31,7 @@ struct FieldPreset: Identifiable {
     let board: (UInt32, UInt32)
 
     static let all: [FieldPreset] = [
-        FieldPreset(id: "grass", name: "잔디", turf: (0x79a259, 0x3e6331), ground: (0xe3e8db, 0x1d2519), board: (0xc5cfb8, 0x0b0f09)),
+        FieldPreset(id: "grass", name: "잔디", turf: (0x8daa80, 0x3e6331), ground: (0xf4f2e8, 0x1d2519), board: (0xc3cab5, 0x0b0f09)),
         FieldPreset(id: "sea", name: "바다", turf: (0x4f8fc0, 0x2c5878), ground: (0xe1eaf0, 0x172029), board: (0xbfd0dc, 0x0a0f14)),
         FieldPreset(id: "sand", name: "모래", turf: (0xd2a35b, 0x8a6631), ground: (0xf1ebdf, 0x231e17), board: (0xd9ccb4, 0x0f0c08)),
         FieldPreset(id: "blossom", name: "벚꽃", turf: (0xe58fa8, 0x9a4a63), ground: (0xf6e9ed, 0x24191c), board: (0xe3c9d1, 0x100a0c)),
