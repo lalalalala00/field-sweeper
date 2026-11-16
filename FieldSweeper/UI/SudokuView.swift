@@ -22,6 +22,7 @@ struct SudokuView: View {
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage("sudoku.showConflicts") private var showConflicts = true
     @AppStorage("sudoku.showMistakes") private var showMistakes = false
+    @AppStorage("sudoku.handwriting") private var handwriting = true
     @AppStorage("sudoku.lastLevel") private var lastLevel = SudokuLevel.medium.rawValue
     @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.scenePhase) private var scenePhase
@@ -40,7 +41,7 @@ struct SudokuView: View {
                          onPause: pauseGame) { menu }
                 .id(language)
             Spacer(minLength: 0)
-            SudokuBoard(game: game, showConflicts: showConflicts, showMistakes: showMistakes)
+            SudokuBoard(game: game, showConflicts: showConflicts, showMistakes: showMistakes, handwriting: handwriting)
                 .frame(maxWidth: 560)
                 .opacity(game.status == .empty ? 0.35 : 1)
             Spacer(minLength: 0)
@@ -111,6 +112,11 @@ struct SudokuView: View {
         Section("표시") {
             Toggle("중복 숫자 표시", isOn: $showConflicts)
             Toggle("틀린 숫자 바로 표시", isOn: $showMistakes)
+        }
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            Section("입력") {
+                Toggle("펜슬로 숫자 쓰기", isOn: $handwriting)
+            }
         }
     }
 
@@ -231,6 +237,7 @@ private struct SudokuBoard: View {
     let game: SudokuGame
     let showConflicts: Bool
     let showMistakes: Bool
+    let handwriting: Bool
 
     var body: some View {
         Canvas { ctx, size in
@@ -289,30 +296,19 @@ private struct SudokuBoard: View {
         }
         .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .background {
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear { boardWidth = geo.size.width }
-                    .onChange(of: geo.size.width) { _, w in boardWidth = w }
-            }
+        // 탭으로 칸을 고르고, iPad에서는 Apple Pencil로 칸에 숫자를 바로 쓸 수 있다.
+        .overlay {
+            ScribbleGridInput(size: 9, isEnabled: game.status == .playing,
+                              handwriting: handwriting,
+                              onTap: { i in game.selected = game.selected == i ? nil : i },
+                              onFocus: { i in game.selected = i },
+                              onWrite: { i, d in
+                                  game.selected = i
+                                  game.enter(d)
+                              })
         }
-        .onTapGesture(coordinateSpace: .local) { point in select(at: point) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(GameKind.sudoku.title) 판")
         .accessibilityValue(Text("\(Int((game.progress * 100).rounded()))% 채움"))
     }
-
-    private func select(at point: CGPoint) {
-        guard game.status == .playing else { return }
-        // Canvas는 정사각형이므로 폭으로 칸 크기를 구한다.
-        let width = boardWidth
-        guard width > 0 else { return }
-        let cell = width / 9
-        let c = Int(point.x / cell), r = Int(point.y / cell)
-        guard (0..<9).contains(c), (0..<9).contains(r) else { return }
-        let i = r * 9 + c
-        game.selected = game.selected == i ? nil : i
-    }
-
-    @State private var boardWidth: CGFloat = 0
 }

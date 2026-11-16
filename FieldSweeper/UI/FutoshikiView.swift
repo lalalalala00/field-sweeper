@@ -24,6 +24,7 @@ struct FutoshikiView: View {
     @AppStorage("futoshiki.showConflicts") private var showConflicts = true
     @AppStorage("futoshiki.showViolations") private var showViolations = true
     @AppStorage("futoshiki.showGuide") private var showGuide = true
+    @AppStorage("futoshiki.handwriting") private var handwriting = true
     @AppStorage("futoshiki.lastLevel") private var lastLevel = FutoshikiLevel.medium.rawValue
     @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.scenePhase) private var scenePhase
@@ -45,7 +46,7 @@ struct FutoshikiView: View {
                 .id(language)
             Spacer(minLength: 0)
             FutoshikiBoard(game: game, showConflicts: showConflicts,
-                           showViolations: showViolations, showGuide: showGuide)
+                           showViolations: showViolations, showGuide: showGuide, handwriting: handwriting)
                 .frame(maxWidth: 560)
                 .opacity(game.status == .empty ? 0.35 : 1)
             if showGuide && game.status != .empty {
@@ -124,6 +125,11 @@ struct FutoshikiView: View {
             Toggle("중복 숫자 표시", isOn: $showConflicts)
             Toggle("부등호 위반 표시", isOn: $showViolations)
             Toggle("부등호 도움말", isOn: $showGuide)
+        }
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            Section("입력") {
+                Toggle("펜슬로 숫자 쓰기", isOn: $handwriting)
+            }
         }
     }
 
@@ -229,8 +235,8 @@ private struct FutoshikiBoard: View {
     let showConflicts: Bool
     let showViolations: Bool
     let showGuide: Bool
+    let handwriting: Bool
 
-    @State private var boardWidth: CGFloat = 0
 
     /// 칸 크기 대비 부등호 틈의 비율.
     private static let gapRatio: CGFloat = 0.42
@@ -313,28 +319,20 @@ private struct FutoshikiBoard: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
-        .background {
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear { boardWidth = min(geo.size.width, geo.size.height) }
-                    .onChange(of: geo.size) { _, s in boardWidth = min(s.width, s.height) }
-            }
+        // 탭으로 칸을 고르고, iPad에서는 Apple Pencil로 칸에 숫자를 바로 쓸 수 있다.
+        .overlay {
+            ScribbleGridInput(size: game.size, gapRatio: Self.gapRatio,
+                              isEnabled: game.status == .playing,
+                              handwriting: handwriting,
+                              onTap: { i in game.selected = game.selected == i ? nil : i },
+                              onFocus: { i in game.selected = i },
+                              onWrite: { i, d in
+                                  game.selected = i
+                                  game.enter(d)
+                              })
         }
-        .onTapGesture(coordinateSpace: .local) { point in select(at: point) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(GameKind.futoshiki.title) 판")
         .accessibilityValue(Text("\(Int((game.progress * 100).rounded()))% 채움"))
-    }
-
-    private func select(at point: CGPoint) {
-        guard game.status == .playing, boardWidth > 0 else { return }
-        let n = game.size
-        let cell = boardWidth / (CGFloat(n) + CGFloat(n - 1) * Self.gapRatio)
-        let step = cell * (1 + Self.gapRatio)
-        // 틈을 누르면 가까운 칸으로 본다.
-        let c = min(max(Int((point.x + cell * Self.gapRatio / 2) / step), 0), n - 1)
-        let r = min(max(Int((point.y + cell * Self.gapRatio / 2) / step), 0), n - 1)
-        let i = r * n + c
-        game.selected = game.selected == i ? nil : i
     }
 }
