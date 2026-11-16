@@ -33,6 +33,28 @@
         }
       }
     },
+    "%@ 완성" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ solved"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ クリア"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 完成"
+          }
+        }
+      }
+    },
     "%@ 저장됨" : {
       "localizations" : {
         "en" : {
@@ -51,6 +73,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@保存"
+          }
+        }
+      }
+    },
+    "%@ 판" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ board"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の盤面"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 棋盘"
           }
         }
       }
@@ -1829,6 +1873,28 @@
         }
       }
     },
+    "영역 크기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Area size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "領域の大きさ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区域大小"
+          }
+        }
+      }
+    },
     "영역을 모두 지울까요?" : {
       "localizations" : {
         "en" : {
@@ -1847,6 +1913,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要清除所有区域吗?"
+          }
+        }
+      }
+    },
+    "영역이 클수록 숫자가 적고 경우의 수가 많아져요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Larger areas mean fewer numbers and more possibilities"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "領域が大きいほど数字が減り、可能性が増えます"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区域越大,数字越少,可能性越多"
           }
         }
       }
@@ -1983,6 +2071,28 @@
         }
       }
     },
+    "이 크기로 시작" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この大きさで始める"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以此大小开始"
+          }
+        }
+      }
+    },
     "이 크기에서 가장 빠른 기록이에요" : {
       "localizations" : {
         "en" : {
@@ -2067,6 +2177,51 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂停"
+          }
+        }
+      }
+    },
+    "입력" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入"
+          }
+        }
+      }
+    },
+    "작게" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Small"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小"
           }
         }
       }
@@ -2760,6 +2915,29 @@
         }
       }
     },
+    "크게" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大"
+          }
+        }
+      }
+    },
     "틀린 숫자 바로 표시" : {
       "localizations" : {
         "en" : {
@@ -2782,6 +2960,28 @@
         }
       }
     },
+    "판 크기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Board size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "盤のサイズ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棋盘大小"
+          }
+        }
+      }
+    },
     "펑, 지뢰를 밟았어요" : {
       "localizations" : {
         "en" : {
@@ -2800,6 +3000,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "砰！踩到地雷了"
+          }
+        }
+      }
+    },
+    "펜슬로 숫자 쓰기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write numbers with Apple Pencil"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Pencilで数字を書く"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用 Apple Pencil 书写数字"
           }
         }
       }
@@ -2892,46 +3114,68 @@
         }
       }
     },
-    "%@ 완성" : {
+    "지우개" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ solved"
+            "value" : "Eraser"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ クリア"
+            "value" : "消しゴム"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 完成"
+            "value" : "橡皮擦"
           }
         }
       }
     },
-    "%@ 판" : {
+    "지우개 켜짐" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ board"
+            "value" : "Eraser on"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@の盤面"
+            "value" : "消しゴム オン"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 棋盘"
+            "value" : "橡皮擦 开"
+          }
+        }
+      }
+    },
+    "지울 영역을 탭하거나 문질러 주세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap or rub areas to erase"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消したい領域をタップするかなぞってください"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按或擦过要清除的区域"
           }
         }
       }

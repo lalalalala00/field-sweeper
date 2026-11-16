@@ -3,6 +3,11 @@ import Foundation
 /// 시카쿠 난이도. 판 크기와 영역 넓이 상한으로 정한다.
 enum ShikakuLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
     case easy = 1, medium, hard, expert
+    /// 판 크기와 영역 크기를 사용자가 정한다.
+    case custom
+
+    /// 난이도 고르기에 나오는 기본 난이도.
+    static let presets: [ShikakuLevel] = [.easy, .medium, .hard, .expert]
 
     var id: Int { rawValue }
     static func < (a: Self, b: Self) -> Bool { a.rawValue < b.rawValue }
@@ -13,6 +18,7 @@ enum ShikakuLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         case .medium: "중급"
         case .hard: "고급"
         case .expert: "전문가"
+        case .custom: "커스텀"
         }
     }
 
@@ -21,7 +27,7 @@ enum ShikakuLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         case .easy: 5
         case .medium: 7
         case .hard: 10
-        case .expert: 12
+        case .expert, .custom: 12
         }
     }
 
@@ -31,7 +37,16 @@ enum ShikakuLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         case .easy: 6
         case .medium: 9
         case .hard: 12
-        case .expert: 16
+        case .expert, .custom: 16
+        }
+    }
+
+    /// 몇 개를 만들어 그중 가장 생각이 많이 필요한 것을 고를지.
+    fileprivate var picks: Int {
+        switch self {
+        case .easy: 4
+        case .medium: 10
+        case .hard, .expert, .custom: 16
         }
     }
 }
@@ -151,6 +166,14 @@ enum ShikakuEngine {
 
     /// 추측 없이 규칙만으로 풀어 본다. 풀리면 clues 순서의 영역, 막히면 nil.
     static func solveLogically(size n: Int, clues: [ShikakuClue]) -> [ShikakuRect]? {
+        solve(size: n, clues: clues).rects
+    }
+
+    /// 논리 풀이 결과와, 바로 정해지지 않아 규칙 2·3을 써야 했던 횟수(effort).
+    /// effort가 클수록 한 번에 보이지 않는 추론이 많이 필요한 퍼즐이다.
+    static func solve(size n: Int, clues: [ShikakuClue]) -> (rects: [ShikakuRect]?, effort: Int, forcedAtStart: Int, stuck: [Int]) {
+        var effort = 0
+        let forcedAtStart = candidates(size: n, clues: clues).filter { $0.count == 1 }.count
         var cands = candidates(size: n, clues: clues)
         var owner = Array(repeating: -1, count: n * n)
         var placed: [ShikakuRect?] = Array(repeating: nil, count: clues.count)
@@ -167,10 +190,11 @@ enum ShikakuEngine {
             // 1. 이미 덮인 칸과 겹치는 후보를 지우고, 하나 남으면 확정.
             for k in clues.indices where placed[k] == nil {
                 cands[k].removeAll { rect in rect.cells(size: n).contains { owner[$0] != -1 } }
-                if cands[k].isEmpty { return nil }
+                if cands[k].isEmpty { return (nil, effort, forcedAtStart, clues.indices.filter { placed[$0] == nil }) }
                 if cands[k].count == 1 { place(k, cands[k][0]); progress = true }
             }
             if progress { continue }
+            effort += 1
 
             // 2. 어떤 칸을 덮을 수 있는 숫자가 하나뿐이면, 그 숫자의 후보는 그 칸을 덮는 것만 남긴다.
             for i in 0..<(n * n) where owner[i] == -1 {
@@ -178,7 +202,7 @@ enum ShikakuEngine {
                 for k in clues.indices where placed[k] == nil && cands[k].contains(where: { $0.contains(index: i, size: n) }) {
                     who.insert(k)
                 }
-                if who.isEmpty { return nil }
+                if who.isEmpty { return (nil, effort, forcedAtStart, clues.indices.filter { placed[$0] == nil }) }
                 if who.count == 1, let k = who.first {
                     let before = cands[k].count
                     cands[k].removeAll { !$0.contains(index: i, size: n) }
@@ -186,6 +210,7 @@ enum ShikakuEngine {
                 }
             }
             if progress { continue }
+            effort += 2
 
             // 3. 한 숫자의 모든 후보가 함께 덮는 칸은 그 숫자 몫이다. 다른 숫자의 후보에서 그 칸을 뺀다.
             for k in clues.indices where placed[k] == nil {
@@ -194,13 +219,13 @@ enum ShikakuEngine {
                 for j in clues.indices where j != k && placed[j] == nil {
                     let before = cands[j].count
                     cands[j].removeAll { rect in rect.cells(size: n).contains { common.contains($0) } }
-                    if cands[j].isEmpty { return nil }
+                    if cands[j].isEmpty { return (nil, effort, forcedAtStart, clues.indices.filter { placed[$0] == nil }) }
                     if cands[j].count < before { progress = true }
                 }
             }
-            if !progress { return nil }
+            if !progress { return (nil, effort, forcedAtStart, clues.indices.filter { placed[$0] == nil }) }
         }
-        return placed.compactMap { $0 }
+        return (placed.compactMap { $0 }, effort, forcedAtStart, [])
     }
 
     // MARK: 생성
@@ -241,20 +266,65 @@ enum ShikakuEngine {
         return rects
     }
 
-    /// 정답이 하나뿐이고 추측 없이 풀리는 퍼즐을 만든다.
-    static func generate<R: RandomNumberGenerator>(_ level: ShikakuLevel, using rng: inout R) -> ShikakuPuzzle {
-        let n = level.size
+    /// 커스텀 판 크기 범위.
+    static let customSizes = 5...15
+
+    /// 커스텀에서 고르는 영역 크기. 판 크기에 비례해 최대 넓이를 정한다.
+    enum RegionSize: Int, CaseIterable {
+        case small, medium, large
+
+        var name: String {
+            switch self {
+            case .small: "작게"
+            case .medium: "보통"
+            case .large: "크게"
+            }
+        }
+
+        func maxArea(for n: Int) -> Int {
+            switch self {
+            case .small: max(4, Int((Double(n) * 0.8).rounded()))
+            case .medium: max(6, Int((Double(n) * 1.3).rounded()))
+            case .large: max(8, Int((Double(n) * 1.6).rounded()))
+            }
+        }
+    }
+
+    /// 정답이 하나뿐이고 추측 없이 풀리는 퍼즐을 여러 개 만들어,
+    /// 바로 정해지지 않아 더 생각해야 하는 것을 고른다.
+    static func generate<R: RandomNumberGenerator>(_ level: ShikakuLevel, size: Int? = nil, maxArea: Int? = nil,
+                                                   using rng: inout R) -> ShikakuPuzzle {
+        let n = size ?? level.size
+        let area = maxArea ?? level.maxArea
+        var best: (puzzle: ShikakuPuzzle, score: Int)?
+        // 큰 판은 한 개 만드는 데도 시간이 걸리므로, 시간 한도 안에서만 더 골라 본다.
+        let deadline = Date.now.addingTimeInterval(1.5)
+        for _ in 0..<level.picks {
+            if best != nil && Date.now > deadline { break }
+            let puzzle = generateOne(level, size: n, maxArea: area, using: &rng)
+            let result = solve(size: n, clues: puzzle.clues)
+            let score = result.effort * 10 - result.forcedAtStart
+            if best.map({ score > $0.score }) ?? true { best = (puzzle, score) }
+        }
+        return best!.puzzle
+    }
+
+    private static func generateOne<R: RandomNumberGenerator>(_ level: ShikakuLevel, size n: Int, maxArea: Int,
+                                                              using rng: inout R) -> ShikakuPuzzle {
         while true {
-            let rects = partition(size: n, maxArea: level.maxArea, using: &rng)
-            // 같은 나눔에서 숫자 위치만 바꿔 여러 번 시도한다.
-            for _ in 0..<30 {
-                let clues = rects.map { rect in
-                    ShikakuClue(index: rect.cells(size: n).randomElement(using: &rng)!, area: rect.area)
+            let rects = partition(size: n, maxArea: maxArea, using: &rng)
+            var clues = rects.map { rect in
+                ShikakuClue(index: rect.cells(size: n).randomElement(using: &rng)!, area: rect.area)
+            }
+            // 논리 풀이가 막히면, 아직 못 정한 영역 하나의 숫자 위치만 옮겨 다시 풀어 본다.
+            for _ in 0..<(rects.count * 4) {
+                let result = solve(size: n, clues: clues)
+                // 규칙(모두 확실한 추론)만으로 끝까지 풀렸다면 해는 하나뿐이고, 나눈 영역과 같다.
+                if result.rects != nil {
+                    return ShikakuPuzzle(size: n, clues: clues, solution: rects, level: level)
                 }
-                guard let solved = solveLogically(size: n, clues: clues) else { continue }
-                // 논리로 풀린 답이 나눈 영역과 같아야 하고, 다른 해가 없어야 한다.
-                guard solved == rects, countSolutions(size: n, clues: clues) == 1 else { continue }
-                return ShikakuPuzzle(size: n, clues: clues, solution: rects, level: level)
+                guard let k = result.stuck.randomElement(using: &rng) else { break }
+                clues[k].index = rects[k].cells(size: n).randomElement(using: &rng)!
             }
         }
     }

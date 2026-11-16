@@ -43,7 +43,8 @@ final class ShikakuGame {
 
     private enum Action {
         case add(ShikakuRegion)
-        case remove(ShikakuRegion)
+        /// 두 번 탭이나 지우개로 지운 영역들. 한 번 문지른 것은 한 번에 되돌린다.
+        case remove([ShikakuRegion])
         case clear([ShikakuRegion])
     }
 
@@ -54,8 +55,11 @@ final class ShikakuGame {
     private(set) var regions: [ShikakuRegion] = []
     private(set) var status: Status = .empty
     private(set) var isNewBest = false
-    /// 지우기 대상으로 고른 영역.
-    var selected: ShikakuRegion?
+    /// 지우개 모드. 켜져 있으면 판을 탭하거나 문질러 영역을 지운다.
+    var eraser = false
+
+    /// 지우개로 한 번 문지르는 동안 지운 영역.
+    private var erasing: [ShikakuRegion]?
 
     private var history: [Action] = []
     private(set) var counted = false
@@ -81,7 +85,8 @@ final class ShikakuGame {
         self.puzzle = puzzle
         regions = []
         history = []
-        selected = nil
+        eraser = false
+        erasing = nil
         counted = false
         isNewBest = false
         accumulated = 0
@@ -97,7 +102,8 @@ final class ShikakuGame {
         puzzle = s.puzzle
         regions = s.regions
         history = []
-        selected = nil
+        eraser = false
+        erasing = nil
         counted = s.counted
         isNewBest = false
         accumulated = s.elapsed
@@ -156,7 +162,6 @@ final class ShikakuGame {
         let region = ShikakuRegion(rect: rect, color: color(for: rect))
         regions.append(region)
         history.append(.add(region))
-        selected = nil
         if !counted {
             counted = true
             StatsStore.recordStart(.shikaku)
@@ -165,28 +170,44 @@ final class ShikakuGame {
         return nil
     }
 
-    func removeSelected() {
-        guard status == .playing, let region = selected, let k = regions.firstIndex(where: { $0.rect == region.rect }) else { return }
-        regions.remove(at: k)
-        history.append(.remove(region))
-        selected = nil
+    /// 그 칸이 속한 영역을 지운다(두 번 탭).
+    func remove(at index: Int) {
+        guard status == .playing, let region = region(at: index) else { return }
+        regions.removeAll { $0.rect == region.rect }
+        history.append(.remove([region]))
+    }
+
+    /// 지우개로 문지르기 시작.
+    func beginErase() {
+        erasing = []
+    }
+
+    /// 문지르는 동안 지나간 칸의 영역을 지운다.
+    func erase(at index: Int) {
+        guard status == .playing, erasing != nil, let region = region(at: index) else { return }
+        regions.removeAll { $0.rect == region.rect }
+        erasing?.append(region)
+    }
+
+    /// 문지르기를 마치면 지운 영역들을 되돌리기 한 번으로 묶는다.
+    func endErase() {
+        if let erased = erasing, !erased.isEmpty { history.append(.remove(erased)) }
+        erasing = nil
     }
 
     func clearAll() {
         guard status == .playing, !regions.isEmpty else { return }
         history.append(.clear(regions))
         regions = []
-        selected = nil
     }
 
     func undo() {
         guard status == .playing, let last = history.popLast() else { return }
         switch last {
         case .add(let region): regions.removeAll { $0.rect == region.rect }
-        case .remove(let region): regions.append(region)
+        case .remove(let erased): regions.append(contentsOf: erased)
         case .clear(let all): regions = all
         }
-        selected = nil
     }
 
     /// 맞닿은 영역과 다른 색 중에서 가장 덜 쓴 색.
@@ -222,7 +243,6 @@ final class ShikakuGame {
         guard regions.reduce(0, { $0 + $1.rect.area }) == puzzle.size * puzzle.size else { return }
         pause()
         status = .won
-        selected = nil
         let seconds = Int(elapsed(at: .now).rounded())
         let previous = StatsStore.load(.shikaku).bestByDifficulty[puzzle.level.name]
         isNewBest = previous.map { seconds < $0 } ?? true

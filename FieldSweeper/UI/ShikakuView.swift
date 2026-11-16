@@ -23,10 +23,13 @@ struct ShikakuView: View {
     @State private var confirmRestart = false
     @State private var confirmClear = false
     @State private var didStart = false
+    @State private var showCustom = false
     @State private var notice: String?
     @State private var noticeID = UUID()
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage("shikaku.lastLevel") private var lastLevel = ShikakuLevel.medium.rawValue
+    @AppStorage("shikaku.customSize") private var customSize = 10
+    @AppStorage("shikaku.customRegion") private var customRegion = ShikakuEngine.RegionSize.medium.rawValue
     @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
@@ -64,8 +67,9 @@ struct ShikakuView: View {
             HStack(spacing: 8) {
                 PuzzleTool(title: "되돌리기", icon: "arrow.uturn.backward") { game.undo() }
                     .disabled(!game.canUndo)
-                PuzzleTool(title: "지우기", icon: "eraser", active: game.selected != nil, accent: accent) { game.removeSelected() }
-                    .disabled(game.selected == nil)
+                PuzzleTool(title: game.eraser ? "지우개 켜짐" : "지우개", icon: "eraser",
+                           active: game.eraser, accent: accent) { toggleEraser() }
+                    .accessibilityValue(game.eraser ? Text("켜짐") : Text("꺼짐"))
                 PuzzleTool(title: "전체 지우기", icon: "trash") { confirmClear = true }
                     .disabled(game.regions.isEmpty)
             }
@@ -82,8 +86,10 @@ struct ShikakuView: View {
         .animation(.easeOut(duration: 0.2), value: isPaused)
         .animation(.easeOut(duration: 0.2), value: showResult)
         .animation(.easeOut(duration: 0.2), value: showLevels)
+        .animation(.easeOut(duration: 0.2), value: showCustom)
         .animation(.easeOut(duration: 0.2), value: generating)
         .animation(.easeOut(duration: 0.2), value: notice)
+        .onPencilModeSwitch { toggleEraser() }
         .onAppear {
             guard !didStart else { return }
             didStart = true
@@ -107,7 +113,7 @@ struct ShikakuView: View {
                 if game.status == .playing { isPaused = true }
             }
         }
-        .onChange(of: showLevels) { _, open in
+        .onChange(of: showLevels || showCustom) { _, open in
             if open { game.pause() } else if !isPaused { game.resume() }
         }
         .onDisappear {
@@ -131,9 +137,10 @@ struct ShikakuView: View {
 
     @ViewBuilder private var menu: some View {
         Section("새 퍼즐") {
-            ForEach(ShikakuLevel.allCases) { level in
+            ForEach(ShikakuLevel.presets) { level in
                 Button("\(tr(level.name)) · \(level.size)×\(level.size)") { newPuzzle(level) }
             }
+            Button(tr(ShikakuLevel.custom.name)) { showCustom = true }
         }
         Button { confirmRestart = true } label: {
             Label("처음부터 다시", systemImage: "arrow.counterclockwise")
@@ -150,12 +157,25 @@ struct ShikakuView: View {
         } else if showLevels {
             PuzzleLevelPicker(
                 items: ShikakuLevel.allCases.map { level in
-                    .init(id: level.rawValue, name: tr(level.name), detail: "\(level.size)×\(level.size)",
+                    .init(id: level.rawValue, name: tr(level.name),
+                          detail: level == .custom ? customDetail : "\(level.size)×\(level.size)",
                           best: StatsStore.load(.shikaku).bestByDifficulty[level.name])
                 },
                 current: lastLevel, accent: accent, canCancel: game.status != .empty,
-                onPick: { id in showLevels = false; newPuzzle(ShikakuLevel(rawValue: id) ?? .medium) },
+                onPick: { id in
+                    showLevels = false
+                    let level = ShikakuLevel(rawValue: id) ?? .medium
+                    if level == .custom { showCustom = true } else { newPuzzle(level) }
+                },
                 onCancel: { if game.status == .empty { dismiss() } else { showLevels = false } })
+            .transition(.opacity)
+        } else if showCustom {
+            ShikakuCustomCard(size: $customSize, region: $customRegion, accent: accent,
+                              onStart: { showCustom = false; newPuzzle(.custom) },
+                              onCancel: {
+                                  showCustom = false
+                                  if game.status == .empty { showLevels = true }
+                              })
             .transition(.opacity)
         } else if isPaused {
             PuzzlePauseCover(subtitle: subtitle, time: time, accent: accent) {
@@ -181,6 +201,10 @@ struct ShikakuView: View {
         case .wrongArea(let need, let got): text = String(localized: "\(need)칸이 필요해요. 지금은 \(got)칸이에요", bundle: AppLanguage.bundle)
         case .overlap: text = String(localized: "다른 영역과 겹쳐요", bundle: AppLanguage.bundle)
         }
+        show(text)
+    }
+
+    private func show(_ text: String) {
         let id = UUID()
         noticeID = id
         notice = text
@@ -190,15 +214,29 @@ struct ShikakuView: View {
         }
     }
 
+    private func toggleEraser() {
+        guard game.status == .playing else { return }
+        game.eraser.toggle()
+        if game.eraser { show(String(localized: "지울 영역을 탭하거나 문질러 주세요", bundle: AppLanguage.bundle)) }
+    }
+
+    private var customDetail: String {
+        let region = ShikakuEngine.RegionSize(rawValue: customRegion) ?? .medium
+        return "\(customSize)×\(customSize) · " + tr(region.name)
+    }
+
     private func newPuzzle(_ level: ShikakuLevel) {
         guard generating == nil else { return }
         lastLevel = level.rawValue
         game.pause()
         generating = level
+        // 커스텀이면 고른 크기, 아니면 난이도 기본값. 같은 퍼즐을 '새 퍼즐'로 다시 만들 때도 지금 설정을 쓴다.
+        let n = level == .custom ? min(max(customSize, ShikakuEngine.customSizes.lowerBound), ShikakuEngine.customSizes.upperBound) : level.size
+        let maxArea = level == .custom ? (ShikakuEngine.RegionSize(rawValue: customRegion) ?? .medium).maxArea(for: n) : level.maxArea
         Task {
             let puzzle = await Task.detached(priority: .userInitiated) {
                 var rng = SystemRandomNumberGenerator()
-                return ShikakuEngine.generate(level, using: &rng)
+                return ShikakuEngine.generate(level, size: n, maxArea: maxArea, using: &rng)
             }.value
             ShikakuSave.clear()
             game.start(puzzle)
@@ -224,6 +262,13 @@ private struct ShikakuBoard: View {
     @State private var dragStart: Int?
     @State private var dragEnd: Int?
     @State private var boardWidth: CGFloat = 0
+    /// 지우개로 문지를 때 직전 위치. 빠르게 그어도 사이 칸을 건너뛰지 않게 이어서 본다.
+    @State private var lastErasePoint: CGPoint?
+    /// 첫 번째 탭을 받은 영역. 곧이어 한 번 더 탭하면 지운다.
+    @State private var armed: (rect: ShikakuRect, at: Date)?
+
+    /// 두 번 탭으로 인정하는 간격.
+    private static let doubleTapWindow: TimeInterval = 0.35
 
     private var preview: ShikakuRect? {
         guard let a = dragStart, let b = dragEnd else { return nil }
@@ -253,8 +298,9 @@ private struct ShikakuBoard: View {
                 let box = frame(region.rect).insetBy(dx: 1.5, dy: 1.5)
                 let shape = Path(roundedRect: box, cornerRadius: min(6, cell * 0.18))
                 ctx.fill(shape, with: .color(Color(ShikakuColors.regions[region.color % ShikakuColors.regions.count])))
-                let isSelected = game.selected?.rect == region.rect
-                ctx.stroke(shape, with: .color(Color(Paper.ink)), lineWidth: isSelected ? 3 : 1.5)
+                // 한 번 탭한 영역은 테두리를 굵게 해서 '한 번 더 누르면 지워진다'는 걸 보여준다.
+                let isArmed = armed?.rect == region.rect
+                ctx.stroke(shape, with: .color(Color(Paper.ink)), lineWidth: isArmed ? 3 : 1.5)
             }
 
             if let rect = preview {
@@ -297,10 +343,21 @@ private struct ShikakuBoard: View {
             DragGesture(minimumDistance: 0, coordinateSpace: .local)
                 .onChanged { value in
                     guard game.status == .playing else { return }
+                    if game.eraser {
+                        rub(to: value.location)
+                        return
+                    }
                     if dragStart == nil { dragStart = index(at: value.startLocation) }
                     if let i = index(at: value.location, clamp: true) { dragEnd = i }
                 }
-                .onEnded { _ in finish() }
+                .onEnded { _ in
+                    if lastErasePoint != nil {
+                        game.endErase()
+                        lastErasePoint = nil
+                    } else {
+                        finish()
+                    }
+                }
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(GameKind.shikaku.title) 판")
@@ -311,17 +368,41 @@ private struct ShikakuBoard: View {
         defer { dragStart = nil; dragEnd = nil }
         guard game.status == .playing, let a = dragStart, let b = dragEnd else { return }
         if a == b {
-            // 탭: 영역이면 고르고, 1칸짜리 숫자면 바로 영역으로 만든다.
+            // 탭: 같은 영역을 빠르게 두 번 누르면 지운다. 1칸짜리 숫자는 한 번에 영역이 된다.
             if let region = game.region(at: a) {
-                game.selected = game.selected?.rect == region.rect ? nil : region
+                if let armed, armed.rect == region.rect, Date.now.timeIntervalSince(armed.at) < Self.doubleTapWindow {
+                    game.remove(at: a)
+                    self.armed = nil
+                } else {
+                    let mark = (rect: region.rect, at: Date.now)
+                    armed = mark
+                    Task {
+                        try? await Task.sleep(for: .seconds(Self.doubleTapWindow))
+                        if armed?.rect == mark.rect && armed?.at == mark.at { armed = nil }
+                    }
+                }
             } else if game.clue(at: a)?.area == 1 {
                 game.add(.spanning(a, a, size: game.size))
-            } else {
-                game.selected = nil
             }
             return
         }
         if let problem = game.add(.spanning(a, b, size: game.size)) { onProblem(problem) }
+    }
+
+    /// 지우개: 직전 위치부터 지금 위치까지 반 칸 간격으로 지나가며 지운다.
+    private func rub(to point: CGPoint) {
+        guard boardWidth > 0 else { return }
+        if lastErasePoint == nil { game.beginErase() }
+        let from = lastErasePoint ?? point
+        let step = boardWidth / CGFloat(game.size) / 2
+        let distance = hypot(point.x - from.x, point.y - from.y)
+        let count = max(1, Int(distance / step))
+        for k in 0...count {
+            let t = CGFloat(k) / CGFloat(count)
+            let p = CGPoint(x: from.x + (point.x - from.x) * t, y: from.y + (point.y - from.y) * t)
+            if let i = index(at: p) { game.erase(at: i) }
+        }
+        lastErasePoint = point
     }
 
     private func index(at point: CGPoint, clamp: Bool = false) -> Int? {
@@ -335,5 +416,55 @@ private struct ShikakuBoard: View {
         }
         guard (0..<n).contains(c), (0..<n).contains(r) else { return nil }
         return r * n + c
+    }
+}
+
+/// 커스텀: 판 크기와 영역 크기를 고른다.
+private struct ShikakuCustomCard: View {
+    @Binding var size: Int
+    @Binding var region: Int
+    let accent: UIColor
+    let onStart: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.35).ignoresSafeArea()
+            VStack(alignment: .leading, spacing: 18) {
+                Text(tr(ShikakuLevel.custom.name))
+                    .font(.system(.title3, design: .rounded, weight: .heavy))
+                Stepper(value: $size, in: ShikakuEngine.customSizes) {
+                    HStack {
+                        Text("판 크기").font(.subheadline.weight(.medium))
+                        Spacer()
+                        Text(verbatim: "\(size)×\(size)").font(.subheadline.monospacedDigit())
+                    }
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("영역 크기").font(.subheadline.weight(.medium))
+                    Picker("영역 크기", selection: $region) {
+                        ForEach(ShikakuEngine.RegionSize.allCases, id: \.rawValue) { r in
+                            Text(tr(r.name)).tag(r.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("영역이 클수록 숫자가 적고 경우의 수가 많아져요")
+                        .font(.caption)
+                        .foregroundStyle(Color(Paper.inkSoft))
+                }
+                HStack(spacing: 8) {
+                    Button(action: onCancel) { Text("취소").frame(maxWidth: .infinity) }
+                        .buttonStyle(PaperButtonStyle())
+                    Button(action: onStart) { Text("이 크기로 시작").frame(maxWidth: .infinity) }
+                        .buttonStyle(PaperButtonStyle(prominent: true))
+                }
+                .padding(.top, 4)
+            }
+            .tint(Color(Paper.ink))
+            .padding(22)
+            .frame(maxWidth: 380)
+            .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 22))
+            .padding(24)
+        }
     }
 }
