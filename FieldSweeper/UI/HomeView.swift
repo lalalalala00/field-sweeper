@@ -19,14 +19,26 @@ struct HomeView: View {
                             GameCard(kind: kind, summary: .load(kind)) { path.append(kind) }
                         }
                     }
-                    stamp
-                    footer
                 }
                 .padding(.horizontal, 28)
                 .padding(.top, 28)
                 .padding(.bottom, 24)
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
+                .id("\(language)-\(refresh)")
+            }
+            // 번호·날짜와 기록·설정은 화면 맨 아래에 고정한다. 게임이 늘어 카드가 스크롤돼도 항상 보인다.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 4) {
+                    stamp
+                    footer
+                }
+                .padding(.horizontal, 28)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
+                .background(Color(Paper.bg))
                 .id("\(language)-\(refresh)")
             }
             .background(Color(Paper.bg).ignoresSafeArea())
@@ -38,8 +50,10 @@ struct HomeView: View {
                     ContentView().toolbar(.hidden, for: .navigationBar)
                 case .sudoku:
                     SudokuView().toolbar(.hidden, for: .navigationBar)
-                default:
-                    EmptyView()
+                case .shikaku:
+                    ShikakuView().toolbar(.hidden, for: .navigationBar)
+                case .futoshiki:
+                    FutoshikiView().toolbar(.hidden, for: .navigationBar)
                 }
             }
             .onChange(of: path) { _, new in if new.isEmpty { refresh += 1 } }
@@ -136,8 +150,20 @@ struct GameSummary {
                 ?? SudokuLevel(rawValue: UserDefaults.standard.integer(forKey: "sudoku.lastLevel")) ?? .medium
             let best = StatsStore.load(.sudoku).bestByDifficulty[level.name].map(clock) ?? "—"
             return GameSummary(first: (tr("진행"), progress), second: (tr("최고 기록") + " · " + tr(level.name), best))
-        default:
-            return GameSummary(first: (tr("진행"), tr("새 게임")), second: (tr("최고 기록"), "—"))
+        case .shikaku:
+            let saved = ShikakuSave.load()
+            let progress = saved.map { "\(Int(($0.progress * 100).rounded()))% · " + tr("이어하기") } ?? tr("새 게임")
+            let level = saved?.puzzle.level
+                ?? ShikakuLevel(rawValue: UserDefaults.standard.integer(forKey: "shikaku.lastLevel")) ?? .medium
+            let best = StatsStore.load(.shikaku).bestByDifficulty[level.name].map(clock) ?? "—"
+            return GameSummary(first: (tr("진행"), progress), second: (tr("최고 기록") + " · " + tr(level.name), best))
+        case .futoshiki:
+            let saved = FutoshikiSave.load()
+            let progress = saved.map { "\(Int(($0.progress * 100).rounded()))% · " + tr("이어하기") } ?? tr("새 게임")
+            let level = saved?.puzzle.level
+                ?? FutoshikiLevel(rawValue: UserDefaults.standard.integer(forKey: "futoshiki.lastLevel")) ?? .medium
+            let best = StatsStore.load(.futoshiki).bestByDifficulty[level.name].map(clock) ?? "—"
+            return GameSummary(first: (tr("진행"), progress), second: (tr("최고 기록") + " · " + tr(level.name), best))
         }
     }
 }

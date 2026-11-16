@@ -27,9 +27,18 @@ struct SudokuView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
 
+    private let accent = GameKind.sudoku.fill
+
     var body: some View {
         VStack(spacing: 14) {
-            topBar
+            PuzzleTopBar(title: "스도쿠",
+                         subtitle: game.status == .empty ? "" : tr(game.level.name),
+                         showTimer: showTimer,
+                         isPlaying: game.status == .playing,
+                         elapsed: game.elapsed(at:),
+                         onBack: { dismiss() },
+                         onPause: pauseGame) { menu }
+                .id(language)
             Spacer(minLength: 0)
             SudokuBoard(game: game, showConflicts: showConflicts, showMistakes: showMistakes)
                 .frame(maxWidth: 560)
@@ -89,65 +98,20 @@ struct SudokuView: View {
         .environment(\.locale, language == "system" ? .current : Locale(identifier: language))
     }
 
-    // MARK: 상단
-
-    private var topBar: some View {
-        HStack(spacing: 12) {
-            square("chevron.left", label: "뒤로") { dismiss() }
-            VStack(alignment: .leading, spacing: 1) {
-                Text("스도쿠")
-                    .font(.system(size: 15, weight: .heavy, design: .rounded))
-                Text(game.status == .empty ? "" : tr(game.level.name))
-                    .font(.caption2)
-                    .foregroundStyle(Color(Paper.inkSoft))
+    @ViewBuilder private var menu: some View {
+        Section("새 퍼즐") {
+            ForEach(SudokuLevel.allCases) { level in
+                Button(tr(level.name)) { newPuzzle(level) }
             }
-            .id(language)
-            Spacer(minLength: 8)
-            if showTimer && game.status != .empty {
-                TimelineView(.periodic(from: .now, by: 0.25)) { context in
-                    let seconds = Int(game.elapsed(at: context.date))
-                    HStack(spacing: 4) {
-                        Image(systemName: "stopwatch")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Color(Paper.inkSoft))
-                        Text(verbatim: clock(seconds))
-                            .font(.system(size: 19, weight: .medium))
-                            .monospacedDigit()
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("시간 \(seconds)초")
-                }
-            }
-            square("pause.circle", label: "일시정지") { pauseGame() }
-                .disabled(game.status != .playing)
-                .opacity(game.status == .playing ? 1 : 0.4)
-            menu
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(Color(Paper.sheet), in: RoundedRectangle(cornerRadius: 18))
-        .frame(maxWidth: 760)
-    }
-
-    private var menu: some View {
-        Menu {
-            Section("새 퍼즐") {
-                ForEach(SudokuLevel.allCases) { level in
-                    Button(tr(level.name)) { newPuzzle(level) }
-                }
-            }
-            Button { confirmRestart = true } label: {
-                Label("처음부터 다시", systemImage: "arrow.counterclockwise")
-            }
-            .disabled(game.status != .playing)
-            Section("표시") {
-                Toggle("중복 숫자 표시", isOn: $showConflicts)
-                Toggle("틀린 숫자 바로 표시", isOn: $showMistakes)
-            }
-        } label: {
-            squareLabel("ellipsis")
+        Button { confirmRestart = true } label: {
+            Label("처음부터 다시", systemImage: "arrow.counterclockwise")
         }
-        .accessibilityLabel("더보기")
+        .disabled(game.status != .playing)
+        Section("표시") {
+            Toggle("중복 숫자 표시", isOn: $showConflicts)
+            Toggle("틀린 숫자 바로 표시", isOn: $showMistakes)
+        }
     }
 
     // MARK: 하단
@@ -155,10 +119,11 @@ struct SudokuView: View {
     private var controls: some View {
         VStack(spacing: 12) {
             HStack(spacing: 8) {
-                tool("되돌리기", icon: "arrow.uturn.backward", active: false) { game.undo() }
+                PuzzleTool(title: "되돌리기", icon: "arrow.uturn.backward") { game.undo() }
                     .disabled(!game.canUndo)
-                tool("지우기", icon: "eraser", active: false) { game.erase() }
-                tool(game.noteMode ? "메모 켜짐" : "메모", icon: "pencil", active: game.noteMode) { game.noteMode.toggle() }
+                PuzzleTool(title: "지우기", icon: "eraser") { game.erase() }
+                PuzzleTool(title: game.noteMode ? "메모 켜짐" : "메모", icon: "pencil",
+                           active: game.noteMode, accent: accent) { game.noteMode.toggle() }
                     .accessibilityValue(game.noteMode ? Text("켜짐") : Text("꺼짐"))
             }
             HStack(spacing: 6) {
@@ -187,124 +152,50 @@ struct SudokuView: View {
         }
         .buttonStyle(.plain)
         .opacity(done ? 0.3 : 1)
-        .accessibilityLabel("\(d)")
+        .accessibilityLabel(Text(verbatim: "\(d)"))
         .accessibilityValue(Text("남은 \(max(left, 0))개"))
-    }
-
-    private func tool(_ title: LocalizedStringKey, icon: String, active: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon).font(.system(size: 18, weight: .medium))
-                Text(title).font(.caption2)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 54)
-            .foregroundStyle(Color(Paper.ink))
-            .background(Color(active ? GameKind.sudoku.fill : Paper.sheet), in: RoundedRectangle(cornerRadius: 10))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func square(_ icon: String, label: LocalizedStringKey, action: @escaping () -> Void) -> some View {
-        Button(action: action) { squareLabel(icon) }
-            .buttonStyle(.plain)
-            .accessibilityLabel(label)
-    }
-
-    private func squareLabel(_ icon: String) -> some View {
-        Image(systemName: icon)
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundStyle(Color(Paper.ink))
-            .frame(width: 44, height: 38)
-            .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 11))
     }
 
     // MARK: 겹쳐 보이는 창
 
     @ViewBuilder private var overlay: some View {
+        let time = showTimer ? clock(Int(game.elapsed(at: .now).rounded())) : nil
         if let level = generating {
-            card {
-                ProgressView().tint(Color(Paper.ink))
-                Text("\(tr(level.name)) 퍼즐을 만들고 있어요")
-                    .font(.subheadline)
-            }
-        } else if showLevels {
-            LevelPicker(current: SudokuLevel(rawValue: lastLevel) ?? .medium,
-                        canCancel: game.status != .empty,
-                        onPick: { level in showLevels = false; newPuzzle(level) },
-                        onCancel: { if game.status == .empty { dismiss() } else { showLevels = false } })
+            PuzzleWorkingCard(text: String(localized: "\(tr(level.name)) 퍼즐을 만들고 있어요", bundle: AppLanguage.bundle))
                 .transition(.opacity)
+        } else if showLevels {
+            PuzzleLevelPicker(
+                items: SudokuLevel.allCases.map { level in
+                    .init(id: level.rawValue, name: tr(level.name), detail: tr(Self.detail(level)),
+                          best: StatsStore.load(.sudoku).bestByDifficulty[level.name])
+                },
+                current: lastLevel, accent: accent, canCancel: game.status != .empty,
+                onPick: { id in showLevels = false; newPuzzle(SudokuLevel(rawValue: id) ?? .medium) },
+                onCancel: { if game.status == .empty { dismiss() } else { showLevels = false } })
+            .transition(.opacity)
         } else if isPaused {
-            ZStack {
-                Color(Paper.bg).opacity(0.97).ignoresSafeArea()
-                VStack(spacing: 12) {
-                    Image(systemName: "pause.circle.fill")
-                        .font(.system(size: 52))
-                        .foregroundStyle(Color(GameKind.sudoku.fill))
-                    Text("일시정지").font(.system(.title2, design: .rounded, weight: .heavy))
-                    Text(tr(game.level.name)).font(.subheadline).foregroundStyle(Color(Paper.inkSoft))
-                    if showTimer {
-                        Text(verbatim: clock(Int(game.elapsed(at: .now))))
-                            .font(.system(size: 32, weight: .medium, design: .monospaced))
-                    }
-                    Button { isPaused = false; game.resume() } label: {
-                        Text("계속하기").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(PaperButtonStyle(prominent: true))
-                    .padding(.top, 8)
-                }
-                .padding(24)
-                .frame(maxWidth: 320)
+            PuzzlePauseCover(subtitle: tr(game.level.name), time: time, accent: accent) {
+                isPaused = false
+                game.resume()
             }
             .transition(.opacity)
         } else if showResult {
-            ZStack {
-                Color.black.opacity(0.4).ignoresSafeArea().onTapGesture { showResult = false }
-                VStack(spacing: 12) {
-                    Text("스도쿠 완성").font(.system(.title2, design: .rounded, weight: .heavy))
-                    Text(tr(game.level.name)).font(.subheadline).foregroundStyle(Color(Paper.inkSoft))
-                    if showTimer {
-                        Text(verbatim: clock(Int(game.elapsed(at: .now).rounded())))
-                            .font(.system(size: 44, weight: .medium, design: .monospaced))
-                        if game.isNewBest {
-                            Text("최고 기록")
-                                .font(.caption.bold())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color(GameKind.sudoku.fill), in: Capsule())
-                        }
-                    }
-                    HStack(spacing: 8) {
-                        Button { showResult = false; showLevels = true } label: {
-                            Text("다른 난이도").frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(PaperButtonStyle())
-                        Button { showResult = false; newPuzzle(game.level) } label: {
-                            Text("새 퍼즐").frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(PaperButtonStyle(prominent: true))
-                    }
-                    .padding(.top, 4)
-                }
-                .multilineTextAlignment(.center)
-                .padding(24)
-                .frame(maxWidth: 360)
-                .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 22))
-                .padding(24)
-            }
-            .transition(.opacity)
+            PuzzleResultCard(title: "스도쿠 완성", subtitle: tr(game.level.name), time: time,
+                             isNewBest: game.isNewBest, accent: accent,
+                             onClose: { showResult = false },
+                             onOtherLevel: { showResult = false; showLevels = true },
+                             onAgain: { showResult = false; newPuzzle(game.level) })
+                .transition(.opacity)
         }
     }
 
-    private func card<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        ZStack {
-            Color.black.opacity(0.25).ignoresSafeArea()
-            VStack(spacing: 14, content: content)
-                .padding(24)
-                .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 18))
+    static func detail(_ level: SudokuLevel) -> String {
+        switch level {
+        case .easy: "기본적인 행·열·구역 제외법"
+        case .medium: "숫자 후보 비교"
+        case .hard: "여러 후보의 연쇄 추론"
+        case .expert: "복잡한 후보 조합과 고급 논리 기법"
         }
-        .transition(.opacity)
     }
 
     // MARK: 동작
@@ -424,73 +315,4 @@ private struct SudokuBoard: View {
     }
 
     @State private var boardWidth: CGFloat = 0
-}
-
-/// 난이도 고르기. 기획서의 기준(필요한 풀이 기법)을 짧게 보여준다.
-private struct LevelPicker: View {
-    let current: SudokuLevel
-    let canCancel: Bool
-    let onPick: (SudokuLevel) -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.35).ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 14) {
-                Text("난이도를 골라 주세요")
-                    .font(.system(.title3, design: .rounded, weight: .heavy))
-                VStack(spacing: 8) {
-                    ForEach(SudokuLevel.allCases) { level in
-                        Button { onPick(level) } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(tr(level.name)).font(.subheadline.weight(.semibold))
-                                    Text(tr(Self.detail(level))).font(.caption).foregroundStyle(Color(Paper.inkSoft))
-                                }
-                                Spacer()
-                                if let best = StatsStore.load(.sudoku).bestByDifficulty[level.name] {
-                                    Text(verbatim: clock(best)).font(.caption.monospacedDigit()).foregroundStyle(Color(Paper.inkSoft))
-                                }
-                            }
-                            .padding(14)
-                            .background(Color(level == current ? GameKind.sudoku.fill : Paper.sheet), in: RoundedRectangle(cornerRadius: 10))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                Button(canCancel ? "취소" : "돌아가기", action: onCancel)
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44)
-            }
-            .padding(22)
-            .frame(maxWidth: 380)
-            .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 22))
-            .padding(24)
-        }
-    }
-
-    static func detail(_ level: SudokuLevel) -> String {
-        switch level {
-        case .easy: "기본적인 행·열·구역 제외법"
-        case .medium: "숫자 후보 비교"
-        case .hard: "여러 후보의 연쇄 추론"
-        case .expert: "복잡한 후보 조합과 고급 논리 기법"
-        }
-    }
-}
-
-struct PaperButtonStyle: ButtonStyle {
-    var prominent = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(.subheadline, weight: .semibold))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 11)
-            .foregroundStyle(Color(prominent ? Paper.bg : Paper.ink))
-            .background(Color(prominent ? Paper.ink : Paper.sheet), in: RoundedRectangle(cornerRadius: 12))
-            .opacity(configuration.isPressed ? 0.75 : 1)
-    }
 }

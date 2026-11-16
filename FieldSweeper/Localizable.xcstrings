@@ -146,6 +146,28 @@
         }
       }
     },
+    "%lld칸이 필요해요. 지금은 %lld칸이에요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs %1$lld cells, this has %2$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldマス必要です。今は%2$lldマスです"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要 %1$lld 格,现在是 %2$lld 格"
+          }
+        }
+      }
+    },
     "iPad 보드" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -767,6 +789,28 @@
         }
       }
     },
+    "다른 영역과 겹쳐요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overlaps another area"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "他の領域と重なっています"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "与其他区域重叠"
+          }
+        }
+      }
+    },
     "다시 풀기" : {
       "localizations" : {
         "en" : {
@@ -922,6 +966,28 @@
         }
       }
     },
+    "되돌리기로 다시 살릴 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can bring them back with Undo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元に戻すで復元できます。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可以用撤销恢复。"
+          }
+        }
+      }
+    },
     "뒤로" : {
       "localizations" : {
         "en" : {
@@ -1007,6 +1073,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "笔记 开"
+          }
+        }
+      }
+    },
+    "모두 지우기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて消す"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部清除"
           }
         }
       }
@@ -1213,6 +1301,50 @@
         }
       }
     },
+    "부등호 도움말" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign guide"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不等号のヒント"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不等号提示"
+          }
+        }
+      }
+    },
+    "부등호 위반 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show broken signs"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不等号の違反を表示"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示违反不等号"
+          }
+        }
+      }
+    },
     "불러오는 중…" : {
       "localizations" : {
         "en" : {
@@ -1231,6 +1363,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "加载中…"
+          }
+        }
+      }
+    },
+    "뾰족한 쪽이 더 작은 숫자예요. 세로도 같아요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The pointed side is the smaller number, across and down."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "とがった側が小さい数字です。縦も同じです。"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尖的一侧是较小的数字,竖向也一样。"
           }
         }
       }
@@ -1545,7 +1699,6 @@
       }
     },
     "시카쿠" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1563,6 +1716,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "数方"
+          }
+        }
+      }
+    },
+    "시카쿠 완성" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shikaku solved"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "四角に切れ クリア"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数方完成"
+          }
+        }
+      }
+    },
+    "시카쿠 판" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shikaku board"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "四角に切れの盤面"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数方棋盘"
           }
         }
       }
@@ -1718,6 +1915,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已翻开的格子"
+          }
+        }
+      }
+    },
+    "영역 안에 숫자가 하나 있어야 해요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An area needs one number inside"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "領域には数字が1つ必要です"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区域内需要一个数字"
+          }
+        }
+      }
+    },
+    "영역 안에 숫자는 하나만 들어가야 해요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An area can hold only one number"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "領域に入る数字は1つだけです"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区域内只能有一个数字"
+          }
+        }
+      }
+    },
+    "영역을 모두 지울까요?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all areas?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての領域を消しますか?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要清除所有区域吗?"
           }
         }
       }
@@ -2051,6 +2314,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "专家"
+          }
+        }
+      }
+    },
+    "전체 지우기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて消す"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部清除"
           }
         }
       }
@@ -2787,7 +3072,6 @@
       }
     },
     "후토시키" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2805,6 +3089,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不等号"
+          }
+        }
+      }
+    },
+    "후토시키 완성" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Futoshiki solved"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不等式 クリア"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不等号完成"
+          }
+        }
+      }
+    },
+    "후토시키 판" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Futoshiki board"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不等式の盤面"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不等号棋盘"
           }
         }
       }
