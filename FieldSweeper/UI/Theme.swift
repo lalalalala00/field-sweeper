@@ -16,7 +16,7 @@ extension UIColor {
 
 /// 잔디(덮인 칸)와 흙(열린 칸). 다크 모드는 밤의 들판.
 enum Palette {
-    static let bg = UIColor.dynamic(0xdde2d5, 0x10150e)
+    static let bg = UIColor.dynamic(0xf6f4ec, 0x151914)
     static let panel = UIColor.dynamic(0xf9fbf6, 0x182016)
     static let ink = UIColor.dynamic(0x1f2a1c, 0xe4ead9)
     static let inkSoft = UIColor.dynamic(0x5b6955, 0x9aa78f)
