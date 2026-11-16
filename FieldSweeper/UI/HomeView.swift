@@ -36,6 +36,8 @@ struct HomeView: View {
                 switch kind {
                 case .minesweeper:
                     ContentView().toolbar(.hidden, for: .navigationBar)
+                case .sudoku:
+                    SudokuView().toolbar(.hidden, for: .navigationBar)
                 default:
                     EmptyView()
                 }
@@ -128,6 +130,12 @@ struct GameSummary {
             let config = DeviceClass.current.resolve(Persist.lastConfig)
             let best = RecordStore.best(for: config.recordKey).map(clock) ?? "—"
             return GameSummary(first: (tr("진행"), progress), second: (tr("최고 기록") + " · " + tr(config.name), best))
+        case .sudoku:
+            let progress = SudokuSave.load().map { "\(Int(($0.progress * 100).rounded()))% · " + tr("이어하기") } ?? tr("새 게임")
+            let level = SudokuSave.load()?.puzzle.level
+                ?? SudokuLevel(rawValue: UserDefaults.standard.integer(forKey: "sudoku.lastLevel")) ?? .medium
+            let best = StatsStore.load(.sudoku).bestByDifficulty[level.name].map(clock) ?? "—"
+            return GameSummary(first: (tr("진행"), progress), second: (tr("최고 기록") + " · " + tr(level.name), best))
         default:
             return GameSummary(first: (tr("진행"), tr("새 게임")), second: (tr("최고 기록"), "—"))
         }

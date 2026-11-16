@@ -19,7 +19,7 @@ enum GameKind: String, CaseIterable, Identifiable, Codable, Hashable {
     }
 
     /// 아직 만들지 않은 게임은 메인 화면에 '준비 중'으로 보인다.
-    var isAvailable: Bool { self == .minesweeper }
+    var isAvailable: Bool { self == .minesweeper || self == .sudoku }
 
     /// 게임마다 하나씩 정한 카드 색 (시안 '메인 · 03 A + 04 A').
     var fill: UIColor {
