@@ -334,6 +334,8 @@ struct TopPanel: View {
                 .font(.system(size: 19, weight: .medium))
                 .monospacedDigit()
         }
+        // 숫자가 두 줄로 꺾이지 않게 한다.
+        .fixedSize()
         .accessibilityElement(children: .ignore)
     }
 

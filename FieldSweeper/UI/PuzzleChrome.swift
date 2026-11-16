@@ -13,30 +13,39 @@ struct PuzzleTopBar<MenuContent: View>: View {
     let onBack: () -> Void
     let onPause: () -> Void
     @ViewBuilder let menu: () -> MenuContent
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             PuzzleIconButton(icon: "chevron.left", label: "뒤로", action: onBack)
             GameSymbol(kind: kind, size: 20, color: Color(Paper.ink))
             VStack(alignment: .leading, spacing: 1) {
                 Text(verbatim: kind.title).font(.system(size: 15, weight: .heavy, design: .rounded))
                 Text(verbatim: subtitle).font(.caption2).foregroundStyle(Color(Paper.inkSoft))
             }
+            // 폭이 모자라면 이름이 먼저 줄어들고, 타이머는 꺾이지 않는다.
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
             Spacer(minLength: 8)
             if showTimer && isPlaying {
                 TimelineView(.periodic(from: .now, by: 0.25)) { context in
                     let seconds = Int(elapsed(context.date))
                     HStack(spacing: 4) {
-                        Image(systemName: "stopwatch")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Color(Paper.inkSoft))
+                        // 폭이 좁은 iPhone에서는 아이콘을 빼서 이름이 잘리지 않게 한다.
+                        if sizeClass != .compact {
+                            Image(systemName: "stopwatch")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Color(Paper.inkSoft))
+                        }
                         Text(verbatim: clock(seconds))
-                            .font(.system(size: 19, weight: .medium))
+                            .font(.system(size: 17, weight: .medium))
                             .monospacedDigit()
                     }
+                    .fixedSize()
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("시간 \(seconds)초")
                 }
+                .fixedSize()
             }
             PuzzleIconButton(icon: "pause.circle", label: "일시정지", action: onPause)
                 .disabled(!isPlaying)
@@ -66,8 +75,9 @@ struct PuzzleIconButton: View {
         Image(systemName: icon)
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Color(Paper.ink))
-            .frame(width: 44, height: 38)
+            .frame(width: 40, height: 38)
             .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 11))
+            .contentShape(Rectangle().inset(by: -3))
     }
 }
 
