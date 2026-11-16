@@ -8,13 +8,13 @@ enum GameKind: String, CaseIterable, Identifiable, Codable, Hashable {
 
     var number: String { String(format: "%02d", (Self.allCases.firstIndex(of: self) ?? 0) + 1) }
 
-    /// 한국어 이름. 화면에는 tr()로 바꿔서 쓴다.
+    /// 게임 이름. 모든 언어에서 번역하지 않고 영어 그대로 쓴다.
     var title: String {
         switch self {
-        case .minesweeper: "필드 스위퍼"
-        case .sudoku: "스도쿠"
-        case .shikaku: "시카쿠"
-        case .futoshiki: "후토시키"
+        case .minesweeper: "Field Sweeper"
+        case .sudoku: "Sudoku"
+        case .shikaku: "Shikaku"
+        case .futoshiki: "Futoshiki"
         }
     }
 

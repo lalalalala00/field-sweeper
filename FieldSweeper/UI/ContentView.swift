@@ -240,8 +240,15 @@ struct TopPanel: View {
     }
 
     private var brand: some View {
+        HStack(spacing: 8) {
+            GameSymbol(kind: .minesweeper, size: 20, color: Color(Palette.ink))
+            brandText
+        }
+    }
+
+    private var brandText: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text("필드 스위퍼")
+            Text(verbatim: GameKind.minesweeper.title)
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
             Text("\(tr(game.config.name)) · \(game.cols)×\(game.rows)")
                 .font(.caption2)

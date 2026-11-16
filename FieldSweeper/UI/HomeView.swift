@@ -177,9 +177,13 @@ struct GameCard: View {
         Button(action: onOpen) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(tr(kind.title))
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(Color(kind.text))
+                    HStack(spacing: 8) {
+                        GameSymbol(kind: kind, size: 17, color: Color(kind.text))
+                            .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
+                        Text(verbatim: kind.title)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(Color(kind.text))
+                    }
                     Spacer()
                     Text(verbatim: kind.number)
                         .font(.system(size: 12, design: .serif))

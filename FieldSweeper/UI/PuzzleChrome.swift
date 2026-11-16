@@ -4,7 +4,8 @@ import SwiftUI
 
 /// 상단: 뒤로, 게임 이름과 난이도, 시간, 일시정지, 더보기 메뉴.
 struct PuzzleTopBar<MenuContent: View>: View {
-    let title: LocalizedStringKey
+    /// 이름(영어 그대로)과 상징을 보여줄 게임.
+    let kind: GameKind
     let subtitle: String
     let showTimer: Bool
     let isPlaying: Bool
@@ -16,8 +17,9 @@ struct PuzzleTopBar<MenuContent: View>: View {
     var body: some View {
         HStack(spacing: 12) {
             PuzzleIconButton(icon: "chevron.left", label: "뒤로", action: onBack)
+            GameSymbol(kind: kind, size: 20, color: Color(Paper.ink))
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 15, weight: .heavy, design: .rounded))
+                Text(verbatim: kind.title).font(.system(size: 15, weight: .heavy, design: .rounded))
                 Text(verbatim: subtitle).font(.caption2).foregroundStyle(Color(Paper.inkSoft))
             }
             Spacer(minLength: 8)

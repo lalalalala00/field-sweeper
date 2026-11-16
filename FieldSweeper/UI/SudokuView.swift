@@ -31,7 +31,7 @@ struct SudokuView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            PuzzleTopBar(title: "스도쿠",
+            PuzzleTopBar(kind: .sudoku,
                          subtitle: game.status == .empty ? "" : tr(game.level.name),
                          showTimer: showTimer,
                          isPlaying: game.status == .playing,
@@ -180,7 +180,7 @@ struct SudokuView: View {
             }
             .transition(.opacity)
         } else if showResult {
-            PuzzleResultCard(title: "스도쿠 완성", subtitle: tr(game.level.name), time: time,
+            PuzzleResultCard(title: "\(GameKind.sudoku.title) 완성", subtitle: tr(game.level.name), time: time,
                              isNewBest: game.isNewBest, accent: accent,
                              onClose: { showResult = false },
                              onOtherLevel: { showResult = false; showLevels = true },
@@ -298,7 +298,7 @@ private struct SudokuBoard: View {
         }
         .onTapGesture(coordinateSpace: .local) { point in select(at: point) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("스도쿠 판")
+        .accessibilityLabel("\(GameKind.sudoku.title) 판")
         .accessibilityValue(Text("\(Int((game.progress * 100).rounded()))% 채움"))
     }
 

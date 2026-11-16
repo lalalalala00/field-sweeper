@@ -35,7 +35,7 @@ struct FutoshikiView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            PuzzleTopBar(title: "후토시키",
+            PuzzleTopBar(kind: .futoshiki,
                          subtitle: game.status == .empty ? "" : subtitle,
                          showTimer: showTimer,
                          isPlaying: game.status == .playing,
@@ -189,7 +189,7 @@ struct FutoshikiView: View {
             }
             .transition(.opacity)
         } else if showResult {
-            PuzzleResultCard(title: "후토시키 완성", subtitle: subtitle, time: time,
+            PuzzleResultCard(title: "\(GameKind.futoshiki.title) 완성", subtitle: subtitle, time: time,
                              isNewBest: game.isNewBest, accent: accent,
                              onClose: { showResult = false },
                              onOtherLevel: { showResult = false; showLevels = true },
@@ -322,7 +322,7 @@ private struct FutoshikiBoard: View {
         }
         .onTapGesture(coordinateSpace: .local) { point in select(at: point) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("후토시키 판")
+        .accessibilityLabel("\(GameKind.futoshiki.title) 판")
         .accessibilityValue(Text("\(Int((game.progress * 100).rounded()))% 채움"))
     }
 

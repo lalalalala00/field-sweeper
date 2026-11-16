@@ -35,7 +35,7 @@ struct ShikakuView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            PuzzleTopBar(title: "시카쿠",
+            PuzzleTopBar(kind: .shikaku,
                          subtitle: game.status == .empty ? "" : "\(tr(game.level.name)) · \(game.size)×\(game.size)",
                          showTimer: showTimer,
                          isPlaying: game.status == .playing,
@@ -164,7 +164,7 @@ struct ShikakuView: View {
             }
             .transition(.opacity)
         } else if showResult {
-            PuzzleResultCard(title: "시카쿠 완성", subtitle: subtitle, time: time,
+            PuzzleResultCard(title: "\(GameKind.shikaku.title) 완성", subtitle: subtitle, time: time,
                              isNewBest: game.isNewBest, accent: accent,
                              onClose: { showResult = false },
                              onOtherLevel: { showResult = false; showLevels = true },
@@ -303,7 +303,7 @@ private struct ShikakuBoard: View {
                 .onEnded { _ in finish() }
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("시카쿠 판")
+        .accessibilityLabel("\(GameKind.shikaku.title) 판")
         .accessibilityValue(Text("\(Int((game.progress * 100).rounded()))% 채움"))
     }
 

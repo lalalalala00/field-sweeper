@@ -77,9 +77,7 @@
         }
       }
     },
-    "%lld" : {
-
-    },
+    "%lld" : {},
     "%lld × %lld · 지뢰 %lld" : {
       "localizations" : {
         "en" : {
@@ -1588,72 +1586,6 @@
         }
       }
     },
-    "스도쿠" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sudoku"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数独"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数独"
-          }
-        }
-      }
-    },
-    "스도쿠 완성" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sudoku solved"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数独クリア"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数独完成"
-          }
-        }
-      }
-    },
-    "스도쿠 판" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sudoku board"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数独の盤面"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数独棋盘"
-          }
-        }
-      }
-    },
     "시간 %lld초" : {
       "localizations" : {
         "en" : {
@@ -1694,72 +1626,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示计时"
-          }
-        }
-      }
-    },
-    "시카쿠" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shikaku"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "四角に切れ"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数方"
-          }
-        }
-      }
-    },
-    "시카쿠 완성" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shikaku solved"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "四角に切れ クリア"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数方完成"
-          }
-        }
-      }
-    },
-    "시카쿠 판" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shikaku board"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "四角に切れの盤面"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数方棋盘"
           }
         }
       }
@@ -2583,29 +2449,6 @@
         }
       }
     },
-    "지뢰찾기" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minesweeper"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "マインスイーパー"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "扫雷"
-          }
-        }
-      }
-    },
     "지옥" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3049,90 +2892,46 @@
         }
       }
     },
-    "필드 스위퍼" : {
+    "%@ 완성" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Field Sweeper"
+            "value" : "%@ solved"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "フィールドスイーパー"
+            "value" : "%@ クリア"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "田野扫雷"
+            "value" : "%@ 完成"
           }
         }
       }
     },
-    "후토시키" : {
+    "%@ 판" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Futoshiki"
+            "value" : "%@ board"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不等式"
+            "value" : "%@の盤面"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不等号"
-          }
-        }
-      }
-    },
-    "후토시키 완성" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Futoshiki solved"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不等式 クリア"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不等号完成"
-          }
-        }
-      }
-    },
-    "후토시키 판" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Futoshiki board"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不等式の盤面"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不等号棋盘"
+            "value" : "%@ 棋盘"
           }
         }
       }
