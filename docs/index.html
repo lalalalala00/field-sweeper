@@ -28,6 +28,17 @@ body { display: flex; flex-direction: column; min-height: 100dvh; }
 .gcard .name { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 500; }
 .gcard .sym { width: 17px; height: 17px; }
 .gcard .no { font: 12px var(--f-serif); color: var(--ink-soft); }
+/* 게임 자체 난이도: 채운 네모 수(1~3) */
+.gcard .meta { display: flex; align-items: center; gap: 10px; }
+.gcard .weight { position: relative; display: flex; gap: 3px; padding: 6px 0; color: var(--text); }
+.gcard .weight i { opacity: .7; }
+/* 올리면 바로 뜨는 말풍선(기본 title 툴팁은 늦게 떠서 쓰지 않는다) */
+.gcard .weight::after { content: attr(data-tip); position: absolute; right: -4px; bottom: calc(100% + 2px); padding: 4px 8px; border-radius: 6px;
+  background: var(--ink); color: var(--bg); font-size: 11px; font-weight: 500; white-space: nowrap; pointer-events: none;
+  opacity: 0; transform: translateY(3px); transition: opacity .12s, transform .12s; }
+.gcard .weight:hover::after { opacity: 1; transform: none; }
+.gcard .weight i { width: 7px; height: 7px; border: 1.2px solid currentColor; border-radius: 1.5px; }
+.gcard .weight i.on { background: currentColor; }
 .gcard .cells { display: flex; gap: 10px; font-size: 11px; line-height: 1.5; }
 .gcard .cells div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .foot { position: sticky; bottom: 0; width: 100%; max-width: 560px; margin: 0 auto; background: var(--bg);
@@ -154,7 +165,9 @@ body { display: flex; flex-direction: column; min-height: 100dvh; }
       if (k.href) a.href = k.href;
       a.style.cssText = colors(k.id);
       const [first, second] = summary(k.id);
-      a.innerHTML = `<div class="top"><span class="name">${Nemo.symbol(k.id)}${k.title}</span><span class="no">${k.number}</span></div>
+      const weightLabel = t('게임 난이도 {0}', t(['쉬움', '보통', '어려움'][k.weight - 1]));
+      const weight = `<span class="weight" role="img" aria-label="${esc(weightLabel)}" data-tip="${esc(weightLabel)}">${[1, 2, 3].map(w => `<i${w <= k.weight ? ' class="on"' : ''}></i>`).join('')}</span>`;
+      a.innerHTML = `<div class="top"><span class="name">${Nemo.symbol(k.id)}${k.title}</span><span class="meta">${weight}<span class="no">${k.number}</span></span></div>
         <div class="cells"><div><span>${esc(first[0])}</span><span>${esc(first[1])}</span></div><div><span>${esc(second[0])}</span><span>${esc(second[1])}</span></div></div>`;
       return a;
     }));

@@ -192,6 +192,9 @@ struct GameCard: View {
                             .foregroundStyle(Color(kind.text))
                     }
                     Spacer()
+                    WeightSquares(weight: kind.weight, color: Color(kind.text))
+                        .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
+                        .padding(.trailing, 4)
                     Text(verbatim: kind.number)
                         .font(.system(size: 12, design: .serif))
                         .foregroundStyle(Color(Paper.inkSoft))
@@ -222,3 +225,25 @@ struct GameCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+/// 게임 자체 난이도: 작은 네모 세 개 중 채운 수(1 쉬움, 2 보통, 3 어려움).
+private struct WeightSquares: View {
+    let weight: Int
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(1...3, id: \.self) { w in
+                RoundedRectangle(cornerRadius: 1.5)
+                    .strokeBorder(color, lineWidth: 1.2)
+                    .background(RoundedRectangle(cornerRadius: 1.5).fill(w <= weight ? color : .clear))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .opacity(0.7)
+        .accessibilityElement()
+        // 읽을 때는 이미 번역이 있는 '쉬움·보통·어려움'만 읽는다.
+        .accessibilityLabel(Text(LocalizedStringKey(["쉬움", "보통", "어려움"][max(1, min(weight, 3)) - 1])))
+    }
+}
+

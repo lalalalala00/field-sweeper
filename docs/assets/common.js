@@ -10,6 +10,7 @@
   const EXTRA = {
     '네모 안에 네모': ['Nemo in Nemo', 'ネモ・イン・ネモ', '方中方'],
     '웹': ['Web', 'Web', '网页版'],
+    '게임 난이도 {0}': ['Game difficulty: {0}', 'ゲームの難しさ：{0}', '游戏难度：{0}'],
     '{0}행 {1}열': ['Row {0}, column {1}', '{0}行 {1}列', '第{0}行 第{1}列'],
     '켜진 불 {0}/{1}': ['Lights on {0}/{1}', '点灯 {0}/{1}', '亮灯 {0}/{1}'],
     '조작 {0}회': ['{0} moves', '{0}手', '{0} 步'],
@@ -63,15 +64,16 @@
   document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
 
   // ── 게임 목록. 순서가 메인 화면의 번호(01, 02…)다. 이름은 모든 언어에서 영어 그대로. ──
+  // weight: 게임 자체의 난이도(1 쉬움, 2 보통, 3 어려움). 메인 화면 카드에 작은 네모 세 개로 보인다. 앱의 GameKind.weight와 같다.
   const KINDS = [
-    { id: 'minesweeper', title: 'Field Sweeper', href: 'minesweeper.html' },
-    { id: 'sudoku', title: 'Sudoku', href: 'sudoku.html' },
-    { id: 'shikaku', title: 'Shikaku', href: 'shikaku.html' },
-    { id: 'futoshiki', title: 'Futoshiki', href: 'futoshiki.html' },
+    { id: 'minesweeper', title: 'Field Sweeper', href: 'minesweeper.html', weight: 2 },
+    { id: 'sudoku', title: 'Sudoku', href: 'sudoku.html', weight: 3 },
+    { id: 'shikaku', title: 'Shikaku', href: 'shikaku.html', weight: 2 },
+    { id: 'futoshiki', title: 'Futoshiki', href: 'futoshiki.html', weight: 3 },
     // 아직 만들지 않은 게임은 메인 화면에 '준비 중'으로 보인다.
-    { id: 'mirror', title: 'Mirror Squares', href: 'mirror.html' },
-    { id: 'pair', title: 'Pair Paths', href: 'pair.html' },
-    { id: 'switch', title: 'Switch Squares', href: 'switch.html' },
+    { id: 'mirror', title: 'Mirror Squares', href: 'mirror.html', weight: 1 },
+    { id: 'pair', title: 'Pair Paths', href: 'pair.html', weight: 2 },
+    { id: 'switch', title: 'Switch Squares', href: 'switch.html', weight: 3 },
   ].map((k, i) => ({ ...k, number: String(i + 1).padStart(2, '0') }));
   const kind = id => KINDS.find(k => k.id === id);
 

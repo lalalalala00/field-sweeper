@@ -20,6 +20,7 @@
 
 - 퍼즐은 매번 새로 만들고, 정답이 하나뿐인지 확인한 판만 냅니다(스도쿠·시카쿠·후토시키·거울네모·스위치네모, 짝네모 중급 이상). 지뢰찾기는 첫 칸과 그 주변만 안전하게 보장합니다.
 - 자동 저장과 이어하기, 일시정지, 시간 표시 끄기
+- 메인 화면 카드의 작은 네모 세 개는 게임 자체 난이도입니다(채운 수: 1 쉬움 · 2 보통 · 3 어려움). 거울네모 1, 지뢰찾기·시카쿠·짝네모 2, 스도쿠·후토시키·스위치네모 3.
 - 헤더의 새 퍼즐 버튼: 지금 난이도로 바로 새 판. 손댄 판이 있으면 먼저 묻습니다. 난이도는 ⋯ 메뉴에서 바꿉니다.
 - 게임별 기록: 플레이 수, 완료 수, 완료율, 평균 시간, 난이도별 최고 기록. 메인 화면의 `no.`는 지금까지 시작한 판 수입니다.
 - 처음 들어간 게임은 규칙을 한 번 보여주고, ⋯ 메뉴의 "규칙 보기"로 다시 볼 수 있습니다.
@@ -96,6 +97,7 @@ python3 -m http.server 8000 -d docs
 ## 고칠 때 함께 바꿀 곳
 
 - **게임 규칙·문제 생성**: 앱(Swift)과 웹(JavaScript)에 각각 있습니다. `FieldSweeper/Model/*Engine.swift`와 `docs/assets/*-engine.js`를 함께 고칩니다.
+- **게임 자체 난이도**: `docs/assets/common.js`의 `KINDS.weight`와 `FieldSweeper/Model/GameKind.swift`의 `weight`가 같아야 합니다.
 - **되돌리기 횟수**: `FieldSweeper/Model/UndoLimit.swift`와 `docs/assets/common.js`의 표가 같아야 합니다.
 - **규칙 문구**: `docs/assets/rules.js`에 있습니다. `{ text, app: true }`로 적은 줄은 앱 전용 기능이라 웹에서는 보이지 않습니다. 앱에 규칙 화면을 만들 때 이 문구를 옮깁니다.
 - **문구 번역**: 웹은 앱의 `Localizable.xcstrings`에서 만든 `docs/assets/i18n.js`를 씁니다. 앱에 문구를 추가했다면 `python3 scripts/gen-web-i18n.py`로 다시 만듭니다. 웹에만 있는 문구는 `common.js`의 번역표에 있습니다.

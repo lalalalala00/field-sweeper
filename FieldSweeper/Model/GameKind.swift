@@ -8,6 +8,14 @@ enum GameKind: String, CaseIterable, Identifiable, Codable, Hashable {
 
     var number: String { String(format: "%02d", (Self.allCases.firstIndex(of: self) ?? 0) + 1) }
 
+    /// 게임 자체의 난이도(1 쉬움, 2 보통, 3 어려움). 메인 화면 카드에 작은 네모 세 개로 보인다. 웹 common.js의 KINDS.weight와 같다.
+    var weight: Int {
+        switch self {
+        case .minesweeper, .shikaku: 2
+        case .sudoku, .futoshiki: 3
+        }
+    }
+
     /// 게임 이름. 모든 언어에서 번역하지 않고 영어 그대로 쓴다.
     var title: String {
         switch self {
