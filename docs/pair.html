@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="같은 숫자 두 칸을 숫자만큼의 칸으로 잇는 짝네모.">
+<meta name="theme-color" content="#f6f4ec">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="assets/paper.css">
+<style>
+:root { --accent: var(--fill-pair); }
+.status { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; font-size: 14px; font-variant-numeric: tabular-nums; margin: 0; }
+.status span + span::before { content: "·"; margin-right: 14px; color: var(--ink-soft); }
+</style>
+<title>Pair Paths</title>
+</head>
+<body>
+<div class="puzzle" id="app">
+  <div class="stage">
+    <div class="board-wrap empty" id="wrap"><canvas class="board" id="board" role="img"></canvas></div>
+    <p class="status" id="status" aria-live="polite"></p>
+    <p class="guide" id="guide"></p>
+  </div>
+  <div class="controls">
+    <div class="tools">
+      <button class="tool" id="undo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span></span></button>
+      <button class="tool" id="clear"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg><span></span></button>
+    </div>
+  </div>
+</div>
+<script src="assets/i18n.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/pair-engine.js"></script>
+<script>
+(() => {
+  // 앱에 화면은 아직 없다. 규칙은 FieldSweeper/Model/PairEngine.swift와 같다.
+  const E = PairEngine, { t, store, stats, clock } = Nemo;
+  const K = Nemo.kind('pair');
+  const $ = id => document.getElementById(id);
+  const app = $('app'), wrap = $('wrap'), canvas = $('board');
+  const bar = Nemo.topBar('pair');
+  app.prepend(bar);
+  const q = sel => bar.querySelector(sel);
+  let showTimer = store.get('showTimer', true);
+
+  // paths: 그린 길들. 각 길은 숫자 칸에서 시작하는 칸 배열이고, 짝 숫자에 닿기 전이면 끝이 빈칸이다(이어서 그릴 수 있다).
+  // history: 바꾸기 전 paths를 통째로 담는다. 되돌리기 횟수는 난이도별 표(UndoLimit)를 따른다.
+  const G = { puzzle: null, paths: [], history: [], status: 'empty', counted: false, undosUsed: 0, timer: new Nemo.Timer(), isNewBest: false };
+  const level = () => E.LEVELS[(G.puzzle ? G.puzzle.level : 1) - 1];
+  const size = () => (G.puzzle ? G.puzzle.size : 5);
+  const subtitle = () => (G.puzzle ? `${t(level().name)} · ${size()}×${size()}` : '');
+  const undosLeft = () => (G.puzzle ? Math.max(0, Nemo.undoLimit(level().name) - G.undosUsed) : Infinity);
+  const clueAt = i => (G.puzzle ? G.puzzle.clues[i] : undefined);
+  const isWall = i => G.puzzle.walls.includes(i);
+  const totalPairs = () => Object.keys(G.puzzle.clues).length / 2;
+  const isComplete = p => p.length >= 2 && clueAt(p[p.length - 1]) === clueAt(p[0]) && p.length === clueAt(p[0]);
+
+  // ── 시작·저장 ──
+  function start(puzzle, saved) {
+    G.puzzle = puzzle;
+    G.paths = saved ? saved.paths.map(p => p.slice()) : [];
+    G.history = [];
+    G.counted = saved ? !!saved.counted : false;
+    G.undosUsed = saved ? saved.undosUsed || 0 : 0;
+    G.isNewBest = false;
+    G.timer = new Nemo.Timer(saved ? saved.elapsed : 0);
+    G.timer.start();
+    G.status = 'playing';
+    drawing = null;
+    render();
+  }
+  function restore(s) {
+    const p = s && s.puzzle;
+    if (!p || !(p.size >= 3) || !p.clues || !Array.isArray(p.walls) || !E.LEVELS[p.level - 1] || !Array.isArray(s.paths)
+      || !s.paths.every(path => Array.isArray(path) && path.every(c => Number.isInteger(c) && c >= 0 && c < p.size * p.size))) return false;
+    start(p, s);
+    return true;
+  }
+  function save() {
+    if (G.status !== 'playing') return;
+    store.set('pair.save', { puzzle: G.puzzle, paths: G.paths, undosUsed: G.undosUsed, complete: G.paths.filter(isComplete).length,
+      total: totalPairs(), elapsed: G.timer.seconds, counted: G.counted, savedAt: Date.now() });
+  }
+
+  // ── 바꾸기 ──
+  function commit(next) {
+    if (JSON.stringify(next) === JSON.stringify(G.paths)) return;
+    G.history.push(G.paths);
+    G.paths = next;
+    if (!G.counted) { G.counted = true; stats.recordStart('pair'); }
+    if (E.check(G.puzzle, G.paths).solved) win(); else save();
+    render();
+  }
+  function undo() {
+    if (G.status !== 'playing' || !G.history.length || !undosLeft()) return;
+    G.paths = G.history.pop();
+    G.undosUsed++;
+    render(); save();
+  }
+  function win() {
+    G.timer.pause();
+    G.status = 'won';
+    store.set('pair.save', null);
+    G.isNewBest = stats.recordWin('pair', level().name, Math.round(G.timer.seconds));
+    setTimeout(() => { if (G.status === 'won') showResult(); }, 450);
+  }
+
+  // ── 그리기 ──
+  // drawing: 지금 손가락으로 그리는 길 { cells, target(숫자), done(짝에 닿음), others(이 길을 뺀 나머지 길들) }
+  let drawing = null, geo = null;
+  const colorOf = L => Nemo.cssColor('--pp' + (((L - 3) % 10 + 10) % 10 + 1));
+  function draw() {
+    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight, 560));
+    if (side <= 0) return;
+    const n = size(), cell = side / n;
+    geo = { side, n, cell };
+    const ctx = Nemo.fitCanvas(canvas, side, side), c = Nemo.cssColor;
+    ctx.clearRect(0, 0, side, side);
+    ctx.save();
+    Nemo.roundRect(ctx, 0, 0, side, side, 6);
+    ctx.clip();
+    ctx.fillStyle = c('--cell'); ctx.fillRect(0, 0, side, side);
+    ctx.beginPath();
+    for (let k = 1; k < n; k++) {
+      const p = Math.round(k * cell) + 0.5;
+      ctx.moveTo(p, 0); ctx.lineTo(p, side); ctx.moveTo(0, p); ctx.lineTo(side, p);
+    }
+    ctx.strokeStyle = c('--thin'); ctx.lineWidth = 1; ctx.stroke();
+    if (G.puzzle) {
+      const ctr = i => ({ x: ((i % n) + 0.5) * cell, y: (Math.floor(i / n) + 0.5) * cell });
+      for (const w of G.puzzle.walls) {
+        Nemo.roundRect(ctx, (w % n) * cell + 3, Math.floor(w / n) * cell + 3, cell - 6, cell - 6, cell * 0.14);
+        ctx.fillStyle = c('--ink-soft'); ctx.fill();
+      }
+      const all = drawing ? drawing.others.concat([drawing.cells]) : G.paths;
+      // 길: 칸을 옅게 칠하고 가운데를 굵은 선으로 잇는다
+      for (const p of all) {
+        const col = colorOf(clueAt(p[0]));
+        ctx.globalAlpha = isComplete(p) ? 0.26 : 0.14;
+        ctx.fillStyle = col;
+        for (const i of p) ctx.fillRect((i % n) * cell + 1, Math.floor(i / n) * cell + 1, cell - 2, cell - 2);
+        ctx.globalAlpha = 1;
+        if (p.length > 1) {
+          ctx.strokeStyle = col; ctx.lineWidth = Math.max(4, cell * 0.2); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.beginPath(); p.forEach((i, k) => { const o = ctr(i); k ? ctx.lineTo(o.x, o.y) : ctx.moveTo(o.x, o.y); }); ctx.stroke();
+        }
+      }
+      // 숫자: 이어지면 길 색으로 채운다
+      const done = new Set();
+      for (const p of all) if (isComplete(p)) { done.add(p[0]); done.add(p[p.length - 1]); }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (const k in G.puzzle.clues) {
+        const i = +k, L = G.puzzle.clues[k], o = ctr(i), r = cell * 0.34;
+        ctx.beginPath(); ctx.arc(o.x, o.y, r, 0, Math.PI * 2);
+        if (done.has(i)) { ctx.fillStyle = colorOf(L); ctx.fill(); }
+        else { ctx.fillStyle = c('--cell'); ctx.fill(); ctx.strokeStyle = colorOf(L); ctx.lineWidth = 2.5; ctx.stroke(); }
+        ctx.fillStyle = done.has(i) ? c('--bg') : c('--ink');
+        ctx.font = `700 ${cell * 0.4}px system-ui, -apple-system, sans-serif`;
+        ctx.fillText(L, o.x, o.y + cell * 0.02);
+      }
+      // 그리는 중인 길의 길이 "3/5"
+      if (drawing && drawing.cells.length > 1) {
+        const tip = ctr(drawing.cells[drawing.cells.length - 1]), label = `${drawing.cells.length}/${drawing.target}`;
+        ctx.font = `700 ${Math.max(12, cell * 0.3)}px system-ui, -apple-system, sans-serif`;
+        const w = ctx.measureText(label).width + 12, h = Math.max(20, cell * 0.42);
+        let x = tip.x + cell * 0.35, y = tip.y - cell * 0.55;
+        x = Math.min(Math.max(x, w / 2 + 2), side - w / 2 - 2); y = Math.max(y, h / 2 + 2);
+        Nemo.roundRect(ctx, x - w / 2, y - h / 2, w, h, h / 2);
+        ctx.fillStyle = c('--ink'); ctx.fill();
+        ctx.fillStyle = c('--bg'); ctx.fillText(label, x, y + 1);
+      }
+    }
+    ctx.restore();
+    Nemo.roundRect(ctx, 1, 1, side - 2, side - 2, 6);
+    ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2; ctx.stroke();
+    if (G.puzzle) canvas.setAttribute('aria-label', `${K.title} · ${t('연결 {0}/{1}', G.paths.filter(isComplete).length, totalPairs())}`);
+  }
+
+  function render() {
+    const playing = G.status === 'playing';
+    q('[data-sub]').textContent = subtitle();
+    q('[data-pause]').disabled = !playing;
+    wrap.classList.toggle('empty', G.status === 'empty');
+    if (G.puzzle) {
+      const parts = [t('연결 {0}/{1}', G.paths.filter(isComplete).length, totalPairs())];
+      if (G.puzzle.fullCover) {
+        const used = G.paths.reduce((a, p) => a + p.length, 0);
+        parts.push(t('빈칸 {0}', size() * size() - G.puzzle.walls.length - used));
+      }
+      $('status').innerHTML = parts.map(p => `<span>${p}</span>`).join('');
+      $('guide').textContent = t(G.puzzle.fullCover ? '같은 숫자끼리 숫자만큼의 칸으로 이어 주세요. 모든 칸을 채워야 해요.' : '같은 숫자끼리 숫자만큼의 칸으로 이어 주세요. 길은 겹칠 수 없어요.');
+    }
+    $('undo').disabled = !playing || !G.history.length || !undosLeft();
+    $('undo').querySelector('span').textContent = Nemo.undoLabel(undosLeft());
+    $('clear').disabled = !playing || !G.paths.length;
+    tick();
+    draw();
+  }
+  function tick() {
+    const show = showTimer && G.status === 'playing';
+    q('[data-timer]').hidden = !show;
+    if (show) q('[data-time]').textContent = clock(Math.floor(G.timer.seconds));
+  }
+  setInterval(tick, 250);
+  new ResizeObserver(draw).observe(wrap);
+  Nemo.onTheme(draw);
+
+  // ── 손가락으로 길 그리기 ──
+  const cellAt = (e, clamp) => {
+    const r = canvas.getBoundingClientRect(), n = geo.n;
+    let col = Math.floor((e.clientX - r.left) / geo.cell), row = Math.floor((e.clientY - r.top) / geo.cell);
+    if (clamp) { col = Math.min(Math.max(col, 0), n - 1); row = Math.min(Math.max(row, 0), n - 1); }
+    return col >= 0 && row >= 0 && col < n && row < n ? row * n + col : null;
+  };
+  let pointer = null, tapPath = null, moved = false;
+  canvas.addEventListener('pointerdown', e => {
+    if (G.status !== 'playing' || !geo || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const i = cellAt(e);
+    if (i == null || isWall(i)) return;
+    canvas.setPointerCapture(e.pointerId);
+    pointer = e.pointerId; moved = false; tapPath = null;
+    const owner = G.paths.findIndex(p => p.includes(i));
+    if (clueAt(i) != null) {
+      // 숫자에서 시작: 그 숫자에 붙은 길은 지우고 새로 그린다
+      drawing = { cells: [i], target: clueAt(i), done: false, others: G.paths.filter(p => !p.includes(i)) };
+    } else if (owner >= 0 && !isComplete(G.paths[owner]) && G.paths[owner][G.paths[owner].length - 1] === i) {
+      // 덜 그린 길의 끝에서 시작: 이어서 그린다
+      const p = G.paths[owner];
+      drawing = { cells: p.slice(), target: clueAt(p[0]), done: false, others: G.paths.filter((_, k) => k !== owner) };
+    } else if (owner >= 0) {
+      tapPath = owner;
+    }
+    draw();
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (e.pointerId !== pointer || !drawing) return;
+    const goal = cellAt(e, true);
+    if (goal == null) return;
+    const n = geo.n;
+    // 빠르게 그어도 칸을 건너뛰지 않게 한 칸씩 따라간다
+    for (let guard = 0; guard < 2 * n; guard++) {
+      const cur = drawing.cells[drawing.cells.length - 1];
+      if (cur === goal) break;
+      const dr = Math.floor(goal / n) - Math.floor(cur / n), dc = (goal % n) - (cur % n);
+      const next = Math.abs(dr) >= Math.abs(dc) ? cur + Math.sign(dr) * n : cur + Math.sign(dc);
+      if (!stepTo(next)) break;
+    }
+    moved = true;
+    draw();
+  });
+  function stepTo(j) {
+    const cells = drawing.cells, len = cells.length;
+    if (len >= 2 && j === cells[len - 2]) { cells.pop(); drawing.done = false; return true; }  // 한 칸 되돌아가기
+    const at = cells.indexOf(j);
+    if (at >= 0) { cells.length = at + 1; drawing.done = false; return true; }               // 지나온 칸으로 돌아가기
+    if (drawing.done || isWall(j) || drawing.others.some(p => p.includes(j))) return false;
+    const L = clueAt(j);
+    if (L != null) {
+      if (L === drawing.target && j !== cells[0] && len + 1 === drawing.target) { cells.push(j); drawing.done = true; return true; }
+      return false;
+    }
+    if (len + 1 > drawing.target - 1) return false;  // 마지막 한 칸은 짝 숫자 자리
+    cells.push(j);
+    return true;
+  }
+  const finish = e => {
+    if (e.pointerId !== pointer) return;
+    pointer = null;
+    if (drawing) {
+      const d = drawing;
+      drawing = null;
+      // 숫자만 눌렀다 떼면 그 숫자의 길을 지운 것으로 친다
+      commit(d.cells.length > 1 ? d.others.concat([d.cells]) : d.others);
+    } else if (tapPath != null && !moved) {
+      commit(G.paths.filter((_, k) => k !== tapPath));
+    }
+    tapPath = null;
+    draw();
+  };
+  canvas.addEventListener('pointerup', finish);
+  canvas.addEventListener('pointercancel', e => { if (e.pointerId === pointer) { pointer = null; drawing = null; draw(); } });
+  document.addEventListener('keydown', e => {
+    if (G.status === 'playing' && !Nemo.isOpen() && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+  });
+
+  // ── 겹쳐 보이는 창 ──
+  const time = () => (showTimer ? clock(Math.round(G.timer.seconds)) : null);
+  function showLevels() {
+    G.timer.pause();
+    const best = stats.load('pair').bestByDifficulty;
+    Nemo.levelPicker({
+      items: E.LEVELS.map(l => ({ id: l.id, name: t(l.name), best: best[l.name],
+        detail: t(l.fullCover ? '{0}×{1} · 모든 칸 채우기' : '{0}×{1} · 빈칸 허용', l.size, l.size) })),
+      current: store.get('pair.lastLevel', 1), canCancel: G.status !== 'empty',
+      onPick: newPuzzle,
+      onCancel: () => { if (G.status === 'empty') location.href = './'; else G.timer.start(); },
+    });
+  }
+  function newPuzzle(id) {
+    store.set('pair.lastLevel', id);
+    G.timer.pause();
+    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(E.LEVELS[id - 1].name)));
+    setTimeout(() => {
+      const puzzle = E.generate(id);
+      store.set('pair.save', null);
+      Nemo.close();
+      start(puzzle);
+      save();
+    }, 40);
+  }
+  function pause() {
+    if (G.status !== 'playing' || Nemo.isOpen()) return;
+    G.timer.pause();
+    save();
+    Nemo.pauseCover({ subtitle: subtitle(), time: time(), onResume: () => G.timer.start() });
+  }
+  function askRestart() {
+    G.timer.pause();
+    Nemo.confirmBox({ title: t('처음부터 다시 풀까요?'), message: t('같은 문제를 처음 상태로 되돌려요.'), ok: t('다시 풀기'),
+      onOk: () => { start(G.puzzle); save(); }, onCancel: () => G.timer.start() });
+  }
+  function showResult() {
+    Nemo.result({ title: t('{0} 완성', K.title), subtitle: subtitle(), time: time(), isNewBest: G.isNewBest,
+      onClose: () => {}, onOther: showLevels, onAgain: () => newPuzzle(G.puzzle.level) });
+  }
+
+  $('undo').onclick = undo;
+  $('clear').onclick = () => {
+    G.timer.pause();
+    Nemo.confirmBox({ title: t('길을 모두 지울까요?'), message: t('되돌리기로 다시 살릴 수 있어요.'), ok: t('모두 지우기'),
+      onOk: () => { commit([]); G.timer.start(); }, onCancel: () => G.timer.start() });
+  };
+  q('[data-pause]').onclick = pause;
+  q('[data-back]').addEventListener('click', save);
+  Nemo.menu(q('[data-more]'), q('[data-menu]'), () => [
+    { section: t('새 퍼즐') },
+    ...E.LEVELS.map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
+    { sep: true },
+    { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing', onClick: askRestart },
+  ]);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  window.addEventListener('pagehide', save);
+
+  document.title = `${K.title} · ${t('네모 안에 네모')}`;
+  $('clear').querySelector('span').textContent = t('전체 지우기');
+  if (!restore(store.get('pair.save', null))) { render(); showLevels(); }
+})();
+</script>
+</body>
+</html>

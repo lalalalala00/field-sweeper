@@ -130,6 +130,8 @@ body { display: flex; flex-direction: column; min-height: 100dvh; }
       if (id === 'shikaku') {
         const n = sv.puzzle.size;
         progress = pct(sv.regions.reduce((a, r) => a + r.rect.height * r.rect.width, 0) / (n * n));
+      } else if (id === 'pair') {
+        progress = pct(sv.total ? (sv.complete || 0) / sv.total : 0);
       } else if (id === 'mirror') {
         progress = pct(sv.puzzle.stars.length ? (sv.lit || 0) / sv.puzzle.stars.length : 0);
       } else if (id === 'switch') {

@@ -23,6 +23,13 @@
     '고정된 거울이에요': ['This mirror is fixed', 'この鏡は固定されています', '这面镜子是固定的'],
     '{0}×{1} · 거울 {2}~{3}개': ['{0}×{1} · {2}–{3} mirrors', '{0}×{1} · 鏡 {2}〜{3}枚', '{0}×{1} · 镜子 {2}–{3} 面'],
     '빛이 모든 별을 지나 목적지로 나가게 해 주세요. 거울을 누르면 방향이 바뀌어요.': ['Send the light through every star and out at the goal. Tap a mirror to turn it.', '光がすべての星を通って出口から出るようにしてください。鏡を押すと向きが変わります。', '让光穿过所有星星并从终点射出。点击镜子可改变方向。'],
+    '연결 {0}/{1}': ['Linked {0}/{1}', '接続 {0}/{1}', '已连接 {0}/{1}'],
+    '빈칸 {0}': ['{0} empty', '空き {0}', '空格 {0}'],
+    '{0}×{1} · 빈칸 허용': ['{0}×{1} · empty cells OK', '{0}×{1} · 空きマスOK', '{0}×{1} · 可留空格'],
+    '{0}×{1} · 모든 칸 채우기': ['{0}×{1} · fill every cell', '{0}×{1} · 全マスを使う', '{0}×{1} · 填满所有格'],
+    '길을 모두 지울까요?': ['Clear all paths?', 'すべての道を消しますか？', '要清除所有路径吗？'],
+    '같은 숫자끼리 숫자만큼의 칸으로 이어 주세요. 길은 겹칠 수 없어요.': ['Link each pair of equal numbers with a path of exactly that many cells. Paths can’t cross.', '同じ数字どうしを、その数字と同じマス数の道でつないでください。道は重なれません。', '用与数字相同格数的路径连接相同的数字。路径不能交叉。'],
+    '같은 숫자끼리 숫자만큼의 칸으로 이어 주세요. 모든 칸을 채워야 해요.': ['Link each pair of equal numbers with a path of exactly that many cells. Every cell must be used.', '同じ数字どうしを、その数字と同じマス数の道でつないでください。すべてのマスを使います。', '用与数字相同格数的路径连接相同的数字。必须用满所有格子。'],
     '남은 {0}회': ['{0} moves left', '残り {0}手', '剩余 {0} 步'],
     '횟수 제한': ['Move limit', '手数制限', '步数限制'],
     '최소 {0}회 안에 풀지 못했어요': ['Not solved within {0} moves', '{0}手以内に解けませんでした', '未能在 {0} 步内完成'],
@@ -62,7 +69,7 @@
     { id: 'futoshiki', title: 'Futoshiki', href: 'futoshiki.html' },
     // 아직 만들지 않은 게임은 메인 화면에 '준비 중'으로 보인다.
     { id: 'mirror', title: 'Mirror Squares', href: 'mirror.html' },
-    { id: 'pair', title: 'Pair Paths', href: null },
+    { id: 'pair', title: 'Pair Paths', href: 'pair.html' },
     { id: 'switch', title: 'Switch Squares', href: 'switch.html' },
   ].map((k, i) => ({ ...k, number: String(i + 1).padStart(2, '0') }));
   const kind = id => KINDS.find(k => k.id === id);

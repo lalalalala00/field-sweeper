@@ -8,6 +8,8 @@
   --fill-mirror: #c3a8c6; --fill-pair: #dfb3b7; --fill-switch: #bfd8cc;
   --text-mirror: #ffffff; --text-pair: var(--ink); --text-switch: var(--ink);
   /* 스위치네모 불: 꺼진 칸은 어둡고 속이 빈 원, 켜진 칸은 밝고 빛나는 원(색과 밝기, 모양이 모두 다르다) */
+  /* 짝네모 길 색: 길이 3~12마다 서로 다른 한 색(pp1이 3). 같은 숫자 쌍은 같은 색이다 */
+  --pp1: #c8743d; --pp2: #b08a2e; --pp3: #8a68bd; --pp4: #3e9a90; --pp5: #c45f78; --pp6: #5f9a4c; --pp7: #4f7fc0; --pp8: #8f6243; --pp9: #b04fa8; --pp10: #66798a;
   /* 거울네모: 빛·켜진 별, 돌릴 수 있는 거울 칸, 고정 거울 칸 */
   --mr-beam: #e39a2b; --mr-glow: rgba(240, 165, 50, .55); --mr-tint: #e2d5e0; --mr-fixed: #e4e0d3;
   --sw-off: #cdc8b8; --sw-ring: #8f8a7a; --sw-on: #f6dd88; --sw-core: #fffaf0; --sw-glow: rgba(255, 205, 80, .85);
@@ -27,6 +29,7 @@
   --fill-minesweeper: #3e4d38; --fill-sudoku: #3b3824; --fill-shikaku: #45352a; --fill-futoshiki: #2f3a4a;
   --text-minesweeper: #f2f6ee; --text-futoshiki: #f2f6ee;
   --fill-mirror: #483c49; --fill-pair: #55383a; --fill-switch: #2c3d35; --text-mirror: #f2f6ee;
+  --pp1: #e6a57a; --pp2: #dcc07a; --pp3: #b89be0; --pp4: #7fcfc5; --pp5: #e094a6; --pp6: #9cc988; --pp7: #8fb0e6; --pp8: #c9a183; --pp9: #e08fd8; --pp10: #a9b8c6;
   --mr-beam: #ffc861; --mr-glow: rgba(255, 200, 97, .45); --mr-tint: #3e3342; --mr-fixed: #262b24;
   --sw-off: #232821; --sw-ring: #56604f; --sw-on: #d2ae52; --sw-core: #fff3cf; --sw-glow: rgba(255, 205, 100, .5);
   --sd-related: #262a20; --sd-same: #48432a; --sd-selected: #6b6238;
@@ -40,6 +43,7 @@
   --fill-minesweeper: #3e4d38; --fill-sudoku: #3b3824; --fill-shikaku: #45352a; --fill-futoshiki: #2f3a4a;
   --text-minesweeper: #f2f6ee; --text-futoshiki: #f2f6ee;
   --fill-mirror: #483c49; --fill-pair: #55383a; --fill-switch: #2c3d35; --text-mirror: #f2f6ee;
+  --pp1: #e6a57a; --pp2: #dcc07a; --pp3: #b89be0; --pp4: #7fcfc5; --pp5: #e094a6; --pp6: #9cc988; --pp7: #8fb0e6; --pp8: #c9a183; --pp9: #e08fd8; --pp10: #a9b8c6;
   --mr-beam: #ffc861; --mr-glow: rgba(255, 200, 97, .45); --mr-tint: #3e3342; --mr-fixed: #262b24;
   --sw-off: #232821; --sw-ring: #56604f; --sw-on: #d2ae52; --sw-core: #fff3cf; --sw-glow: rgba(255, 205, 100, .5);
   --sd-related: #262a20; --sd-same: #48432a; --sd-selected: #6b6238;
