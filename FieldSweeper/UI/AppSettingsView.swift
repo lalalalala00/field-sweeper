@@ -47,6 +47,8 @@ struct AppSettingsView: View {
                                 Text("라이트").tag("light")
                                 Text("다크").tag("dark")
                             }
+                            // 고르는 즉시 앱의 모든 창(이 설정 창 포함)에 적용한다.
+                            .onChange(of: appearance) { _, value in FieldSweeperApp.apply(value) }
                             .pickerStyle(.menu)
                             .labelsHidden()
                             .tint(Color(Paper.ink))
