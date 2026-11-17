@@ -30,8 +30,8 @@ enum MirrorLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         switch self {
         case .easy: 2...3
         case .medium: 4...5
-        case .hard: 6...7
-        case .expert: 8...10
+        case .hard: 8...9
+        case .expert: 11...13
         }
     }
 
@@ -70,9 +70,18 @@ enum MirrorLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         }
     }
 
-    /// 이 범위의 effort가 나올 때까지 후보를 만든다. 중급은 그대로 두면 거의 모든 판이 빛만 따라가도 풀려서
-    /// 조금 생각해야 하는 판을 고른다. 고급부터는 크기만으로 충분히 어려워 고르지 않는다.
-    var effort: ClosedRange<Int>? { self == .medium ? 3...7 : nil }
+    /// 이 범위의 effort가 나올 때까지 후보를 만든다. 그대로 두면 거의 모든 판이 빛만 따라가도 풀려서,
+    /// 중급은 조금 생각해야 하는 판, 고급은 꽤 헤매는 판을 고른다.
+    var effort: ClosedRange<Int>? {
+        switch self {
+        case .medium: 3...7
+        case .hard: 6...Int.max
+        case .easy, .expert: nil
+        }
+    }
+
+    /// MirrorEngine.hardestSeconds 동안 만들어 보고 가장 많이 헤매는 판을 낸다.
+    var hardest: Bool { self == .expert }
 }
 
 /// 테두리의 자리. side 0 위, 1 오른쪽, 2 아래, 3 왼쪽. k는 그 변의 몇 번째 칸인지.
@@ -250,7 +259,20 @@ enum MirrorEngine {
     }
 
     /// 난이도에 effort 범위가 있으면 그 범위의 판이 나올 때까지 만들고, 시간 안에 못 찾으면 가장 가까운 판을 쓴다.
+    /// 전문가: 이 시간 동안 만들어 보고 가장 많이 헤매는 판. hardestEnough 이상이면 바로 낸다.
+    static let hardestSeconds = 1.5, hardestEnough = 70
+
     static func generate<R: RandomNumberGenerator>(_ level: MirrorLevel, using rng: inout R) -> MirrorPuzzle {
+        if level.hardest {
+            let until = Date.now.addingTimeInterval(hardestSeconds)
+            var best: (puzzle: MirrorPuzzle, effort: Int)?
+            while best == nil || Date.now < until {
+                let p = generateOne(level, using: &rng), e = effort(p)
+                if best.map({ e > $0.effort }) ?? true { best = (p, e) }
+                if e >= hardestEnough { break }
+            }
+            return best!.puzzle
+        }
         guard let band = level.effort else { return generateOne(level, using: &rng) }
         let deadline = Date.now.addingTimeInterval(1.5)
         var best: (puzzle: MirrorPuzzle, gap: Int)?

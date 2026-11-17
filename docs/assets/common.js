@@ -126,6 +126,8 @@
     restart: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>',
     stopwatch: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4M9 2h6"/>',
     external: '<path d="M7 17L17 7M9 7h8v8"/>',
+    // 처음부터 다시: 맨 앞으로 되감기. 원형 화살표(restart)는 헤더의 새 퍼즐 버튼이 쓴다(지뢰찾기와 같다).
+    rewind: '<path d="M6 5v14"/><path d="M18 6.5v11L10 12z"/>',
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.1-2.4 3.7"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>',
   };
   const icon = name => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`;
@@ -268,10 +270,26 @@
       <div class="title"><b>${k.title}</b><span data-sub></span></div>
       <div class="spacer"></div>
       <div class="timer" data-timer hidden>${icon('stopwatch')}<span data-time>0:00</span></div>
+      <button class="ib" data-new aria-label="${t('새 퍼즐')}" title="${t('새 퍼즐')}">${icon('restart')}</button>
       <button class="ib" data-pause aria-label="${t('일시정지')}" disabled>${icon('pause')}</button>
       <div class="more"><button class="ib" data-more aria-label="${t('더보기')}" aria-haspopup="menu" aria-expanded="false">${icon('more')}</button>
       <div class="menu" role="menu" hidden data-menu></div></div>`;
     return el;
+  }
+
+  // 헤더의 '새 퍼즐' 버튼: 지금 난이도로 새 판을 만든다(지뢰찾기의 새 게임 버튼과 같다).
+  // 손댄 판이 있으면 먼저 묻는다. 아직 판이 없으면 난이도 고르기를 연다.
+  // level(): 지금 난이도 id 또는 null, touched(): 지울 진행이 있는지, start(id), pick(), timer
+  function newButton(bar, { level, touched, start, pick, timer }) {
+    bar.querySelector('[data-new]').onclick = () => {
+      const id = level();
+      if (id == null) return pick();
+      if (!touched()) return start(id);
+      const running = timer().running;
+      timer().pause();
+      confirmBox({ title: t('새 게임을 시작할까요?'), message: t('지금 하던 게임은 사라져요.'), ok: t('새 퍼즐'),
+        onOk: () => start(id), onCancel: () => { if (running) timer().start(); } });
+    };
   }
 
   // ── 캔버스: 화면 배율에 맞춰 선명하게 그리고, CSS 색 변수를 읽는다. ──
@@ -299,7 +317,7 @@
   window.Nemo = {
     store, t, setLang, get lang() { return lang; }, get langPref() { return langPref; },
     KINDS, kind, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel,
-    overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, menu, topBar,
+    overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, menu, topBar, newButton,
     fitCanvas, cssColor, onTheme, roundRect,
   };
 })();

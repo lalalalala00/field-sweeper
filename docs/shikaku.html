@@ -412,12 +412,14 @@
 
   q('[data-pause]').onclick = pause;
   q('[data-back]').addEventListener('click', save);
+  Nemo.newButton(bar, { level: () => (G.puzzle ? G.puzzle.level : null), touched: () => G.status === 'playing' && G.counted,
+    start: newPuzzle, pick: showLevels, timer: () => G.timer });
   Nemo.menu(q('[data-more]'), q('[data-menu]'), () => [
     { section: t('새 퍼즐') },
     ...E.LEVELS.slice(0, 4).map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
     { label: t('커스텀'), onClick: showCustom },
     { sep: true },
-    { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing', onClick: () => {
+    { label: t('처음부터 다시'), icon: 'rewind', disabled: G.status !== 'playing', onClick: () => {
       G.timer.pause();
       Nemo.confirmBox({ title: t('처음부터 다시 풀까요?'), message: t('같은 문제를 처음 상태로 되돌려요.'), ok: t('다시 풀기'),
         onOk: () => { start(G.puzzle); save(); }, onCancel: () => G.timer.start() });

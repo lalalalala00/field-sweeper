@@ -4,12 +4,13 @@
 // 테두리 자리(port)는 { side, k }: side 0 위, 1 오른쪽, 2 아래, 3 왼쪽, k는 그 변의 몇 번째 칸인지.
 (function (root) {
   const LEVELS = [
-    // effort: 이 범위의 판이 나올 때까지 후보를 만든다(아래 effort 참고). 중급은 그대로 두면 거의 모든 판이
-    // 빛만 따라가도 풀려서 조금 생각해야 하는 판을 고른다. 고급부터는 크기만으로 충분히 어려워 고르지 않는다.
+    // effort: 이 범위의 판이 나올 때까지 후보를 만든다(아래 effort 참고). 그대로 두면 거의 모든 판이
+    // 빛만 따라가도 풀려서, 중급은 조금 생각해야 하는 판, 고급은 꽤 헤매는 판을 고른다.
+    // hardest: HARDEST_MS 동안 만들어 보고 가장 많이 헤매는 판을 낸다(HARDEST_ENOUGH 이상이면 바로 낸다).
     { id: 1, name: '초급', size: 5, mirrors: [2, 3], fixedOnPath: 0, decoyFixed: 0, walls: 0, stars: [1, 2] },
     { id: 2, name: '중급', size: 6, mirrors: [4, 5], fixedOnPath: 1, decoyFixed: 1, walls: 0, stars: [2, 3], effort: [3, 7] },
-    { id: 3, name: '고급', size: 7, mirrors: [6, 7], fixedOnPath: 1, decoyFixed: 2, walls: 2, stars: [3, 4] },
-    { id: 4, name: '전문가', size: 8, mirrors: [8, 10], fixedOnPath: 2, decoyFixed: 2, walls: 3, stars: [3, 5] },
+    { id: 3, name: '고급', size: 7, mirrors: [8, 9], fixedOnPath: 1, decoyFixed: 2, walls: 2, stars: [3, 4], effort: [6, Infinity] },
+    { id: 4, name: '전문가', size: 8, mirrors: [11, 13], fixedOnPath: 2, decoyFixed: 2, walls: 3, stars: [3, 5], hardest: true },
   ];
   // 오른쪽, 아래, 왼쪽, 위
   const DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];
@@ -126,8 +127,19 @@
     return wrong;
   }
 
+  const HARDEST_MS = 1500, HARDEST_ENOUGH = 70;
   function generate(levelId) {
     const L = LEVELS[levelId - 1];
+    if (L.hardest) {
+      const until = Date.now() + HARDEST_MS;
+      let best = null;
+      while (!best || Date.now() < until) {
+        const p = generateOne(levelId), e = effort(p);
+        if (!best || e > best.e) best = { p, e };
+        if (e >= HARDEST_ENOUGH) break;
+      }
+      return best.p;
+    }
     if (!L.effort) return generateOne(levelId);
     // 범위 안의 판이 나오면 바로 쓰고, 시간 안에 못 찾으면 범위에 가장 가까운 판을 쓴다.
     const [lo, hi] = L.effort, deadline = Date.now() + 1500;

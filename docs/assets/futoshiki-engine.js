@@ -2,10 +2,12 @@
 // 부등호: 0 없음, 1 왼쪽(위쪽)이 작다, 2 왼쪽(위쪽)이 크다. horizontal[r*n+c]는 (r,c)-(r,c+1), vertical[r*n+c]는 (r,c)-(r+1,c).
 (function (root) {
   const LEVELS = [
-    { id: 1, name: '초급', size: 4, minTier: 1, maxTier: 1 },
-    { id: 2, name: '중급', size: 5, minTier: 1, maxTier: 1 },
-    { id: 3, name: '고급', size: 6, minTier: 2, maxTier: 2 },
-    { id: 4, name: '전문가', size: 7, minTier: 2, maxTier: 3 },
+    // minGivens: 처음에 남겨 둘 숫자의 최소 개수. 숫자가 하나도 없으면 부등호 사슬부터 읽어야 해서
+    // 처음 하는 사람에게 막막하므로, 쉬운 난이도에는 시작할 숫자를 남긴다.
+    { id: 1, name: '초급', size: 4, minTier: 1, maxTier: 1, minGivens: 4 },
+    { id: 2, name: '중급', size: 5, minTier: 1, maxTier: 1, minGivens: 2 },
+    { id: 3, name: '고급', size: 6, minTier: 2, maxTier: 2, minGivens: 1 },
+    { id: 4, name: '전문가', size: 7, minTier: 3, maxTier: 3, minGivens: 0 },
   ];
   const NONE = 0, LESS = 1, GREATER = 2;
 
@@ -222,10 +224,13 @@
         if (r < n - 1) { vertical[i] = signOf(solution[i], solution[i + n]); signSlots.push(['v', i]); }
       }
       // 숫자 칸을 먼저 지워 부등호가 단서로 남게 한다.
+      let left = n * n;
       for (const [kind, i] of shuffle(cellSlots).concat(shuffle(signSlots))) {
+        if (kind === 'cell' && left <= spec.minGivens) continue;
         if (kind === 'cell') givens[i] = 0; else if (kind === 'h') horizontal[i] = NONE; else vertical[i] = NONE;
         const rel = relations(n, horizontal, vertical);
         const ok = grade(n, givens, rel, spec.maxTier) != null && countSolutions(n, givens, rel) === 1;
+        if (ok && kind === 'cell') left--;
         if (!ok) {
           if (kind === 'cell') givens[i] = solution[i];
           else if (kind === 'h') horizontal[i] = signOf(solution[i], solution[i + 1]);

@@ -25,11 +25,23 @@ enum FutoshikiLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         }
     }
 
+    /// 처음에 남겨 둘 숫자의 최소 개수. 숫자가 하나도 없으면 부등호 사슬부터 읽어야 해서
+    /// 처음 하는 사람에게 막막하므로, 쉬운 난이도에는 시작할 숫자를 남긴다.
+    fileprivate var minGivens: Int {
+        switch self {
+        case .easy: 4
+        case .medium: 2
+        case .hard: 1
+        case .expert: 0
+        }
+    }
+
     /// 적어도 이 단계의 기법이 필요한 문제를 고른다.
     fileprivate var minTier: Int {
         switch self {
         case .easy, .medium: 1
-        case .hard, .expert: 2
+        case .hard: 2
+        case .expert: 3
         }
     }
 
@@ -229,7 +241,9 @@ enum FutoshikiEngine {
             // 숫자 칸을 먼저 지워 부등호가 단서로 남게 한다.
             let cellSlots = clues.filter { if case .cell = $0 { true } else { false } }
             let signSlots = clues.filter { if case .cell = $0 { false } else { true } }
+            var left = n * n
             for clue in cellSlots.shuffled(using: &rng) + signSlots.shuffled(using: &rng) {
+                if case .cell = clue, left <= level.minGivens { continue }
                 switch clue {
                 case .cell(let i): givens[i] = 0
                 case .h(let i): horizontal[i] = .none
@@ -238,6 +252,7 @@ enum FutoshikiEngine {
                 let rel = relations(size: n, horizontal: horizontal, vertical: vertical)
                 let ok = grade(size: n, givens: givens, relations: rel, maxTier: level.maxTier) != nil
                     && countSolutions(size: n, givens: givens, relations: rel) == 1
+                if ok, case .cell = clue { left -= 1 }
                 if !ok {
                     switch clue {
                     case .cell(let i): givens[i] = solution[i]

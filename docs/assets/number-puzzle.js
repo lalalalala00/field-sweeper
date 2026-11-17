@@ -254,11 +254,13 @@ window.NumberPuzzle = function (cfg) {
 
   q('[data-pause]').onclick = pause;
   q('[data-back]').addEventListener('click', save);
+  Nemo.newButton(bar, { level: () => (G.puzzle ? levelOf(G.puzzle).id : null), touched: () => G.status === 'playing' && G.counted,
+    start: newPuzzle, pick: showLevels, timer: () => G.timer });
   Nemo.menu(q('[data-more]'), q('[data-menu]'), () => [
     { section: t('새 퍼즐') },
     ...cfg.levels.map(l => ({ label: cfg.menuLabel(l), onClick: () => newPuzzle(l.id) })),
     { sep: true },
-    { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing', onClick: askRestart },
+    { label: t('처음부터 다시'), icon: 'rewind', disabled: G.status !== 'playing', onClick: askRestart },
     { section: t('표시') },
     ...cfg.options.map(o => ({ label: t(o.label), checked: opts[o.key], onChange: v => { opts[o.key] = v; store.set(`${cfg.kind}.${o.key}`, v); render(); } })),
     { sep: true },

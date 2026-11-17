@@ -353,11 +353,13 @@ canvas.board { border-radius: 0; }
   $('restart').onclick = askRestart;
   q('[data-pause]').onclick = pause;
   q('[data-back]').addEventListener('click', save);
+  Nemo.newButton(bar, { level: () => (G.puzzle ? G.puzzle.level : null), touched: () => G.status === 'playing' && G.counted,
+    start: newPuzzle, pick: showLevels, timer: () => G.timer });
   Nemo.menu(q('[data-more]'), q('[data-menu]'), () => [
     { section: t('새 퍼즐') },
     ...E.LEVELS.map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
     { sep: true },
-    { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing' || !G.moves, onClick: askRestart },
+    { label: t('처음부터 다시'), icon: 'rewind', disabled: G.status !== 'playing' || !G.moves, onClick: askRestart },
     { sep: true },
     { label: t('규칙 보기'), icon: 'help', onClick: showRules },
   ]);
