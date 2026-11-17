@@ -98,6 +98,25 @@ window.NumberPuzzle = function (cfg) {
     G.selected = last[0].i;
     render(); save();
   }
+  // 처음부터 다시: 내가 넣은 숫자와 메모를 모두 지운다. 주어진 숫자는 그대로, 시간은 이어서, 되돌리기 한 번으로 살린다.
+  const hasEntries = () => G.values.some((v, i) => !isGiven(i) && (v || G.notes[i]));
+  function clearAll() {
+    if (G.status !== 'playing') return;
+    const changes = [];
+    G.values.forEach((v, i) => { if (!isGiven(i) && (v || G.notes[i])) changes.push({ i, v, m: G.notes[i] }); });
+    if (!changes.length) return;
+    record(changes);
+    for (const c of changes) { G.values[c.i] = 0; G.notes[c.i] = 0; }
+    G.selected = null;
+    render(); save();
+  }
+  const startOverBtn = Nemo.placeStartOver(wrap, document.createElement('button'));
+  startOverBtn.onclick = () => {
+    const running = G.timer.running;
+    G.timer.pause();
+    Nemo.confirmBox({ title: t('처음부터 다시 풀까요?'), message: t('되돌리기로 다시 살릴 수 있어요.'), ok: t('다시 풀기'),
+      onOk: () => { clearAll(); if (running) G.timer.start(); }, onCancel: () => { if (running) G.timer.start(); } });
+  };
   function toggleNote() { if (G.status === 'playing') { G.noteMode = !G.noteMode; render(); } }
 
   function checkWin() {
@@ -138,6 +157,7 @@ window.NumberPuzzle = function (cfg) {
   function renderControls() {
     const playing = G.status === 'playing', size = n();
     tools.undo.disabled = !playing || !G.history.length || !undosLeft();
+    startOverBtn.disabled = !playing || !hasEntries();
     tools.undo.querySelector('span').textContent = Nemo.undoLabel(undosLeft());
     tools.erase.disabled = !playing;
     tools.note.disabled = !playing;
@@ -164,7 +184,7 @@ window.NumberPuzzle = function (cfg) {
 
   let side = 0;
   function draw() {
-    const w = Math.min(wrap.clientWidth, wrap.clientHeight, cfg.maxWidth);
+    const w = Math.min(wrap.clientWidth, wrap.clientHeight - Nemo.SO_H, cfg.maxWidth);
     if (w <= 0) return;
     side = Math.floor(w);
     const ctx = Nemo.fitCanvas(canvas, side, side);
@@ -244,14 +264,6 @@ window.NumberPuzzle = function (cfg) {
       onClose: () => {}, onOther: showLevels, onAgain: () => newPuzzle(levelOf(G.puzzle).id),
     });
   }
-  function askRestart() {
-    G.timer.pause();
-    Nemo.confirmBox({
-      title: t('처음부터 다시 풀까요?'), message: t('같은 문제를 처음 상태로 되돌려요.'), ok: t('다시 풀기'),
-      onOk: () => { start(G.puzzle); save(); }, onCancel: () => G.timer.start(),
-    });
-  }
-
   q('[data-pause]').onclick = pause;
   q('[data-back]').addEventListener('click', save);
   Nemo.newButton(bar, { level: () => (G.puzzle ? levelOf(G.puzzle).id : null), touched: () => G.status === 'playing' && G.counted,
@@ -260,7 +272,6 @@ window.NumberPuzzle = function (cfg) {
     { section: t('새 퍼즐') },
     ...cfg.levels.map(l => ({ label: cfg.menuLabel(l), onClick: () => newPuzzle(l.id) })),
     { sep: true },
-    { label: t('처음부터 다시'), icon: 'rewind', disabled: G.status !== 'playing', onClick: askRestart },
     { section: t('표시') },
     ...cfg.options.map(o => ({ label: t(o.label), checked: opts[o.key], onChange: v => { opts[o.key] = v; store.set(`${cfg.kind}.${o.key}`, v); render(); } })),
     { sep: true },

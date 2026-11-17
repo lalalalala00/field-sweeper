@@ -310,6 +310,23 @@
     return el;
   }
 
+  // '처음부터 다시' 버튼을 판 바로 위 왼쪽에 둔다(앱과 같은 자리). 판(wrap의 첫 요소)과 한 묶음으로 가운데에 놓인다.
+  // 같은 문제를 처음 상태로 돌리고 시간은 이어서 흐른다. 판 크기를 잴 때는 wrap 높이에서 SO_H(버튼 줄 32 + 간격 8)를 뺀다.
+  const SO_H = 40;
+  function placeStartOver(wrap, btn) {
+    const board = wrap.firstElementChild;
+    const col = document.createElement('div');
+    col.className = 'board-col';
+    const row = document.createElement('div');
+    row.className = 'so-row';
+    btn.className = 'startover';
+    btn.innerHTML = `${icon('rewind')}<span>${esc(t('처음부터 다시'))}</span>`;
+    wrap.insertBefore(col, board);
+    row.append(btn);
+    col.append(row, board);
+    return btn;
+  }
+
   // 헤더의 '새 퍼즐' 버튼: 지금 난이도로 새 판을 만든다(지뢰찾기의 새 게임 버튼과 같다).
   // 손댄 판이 있으면 먼저 묻는다. 아직 판이 없으면 난이도 고르기를 연다.
   // level(): 지금 난이도 id 또는 null, touched(): 지울 진행이 있는지, start(id), pick(), timer
@@ -349,7 +366,7 @@
 
   window.Nemo = {
     store, t, setLang, get lang() { return lang; }, get langPref() { return langPref; },
-    KINDS, kind, nameHTML, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel,
+    KINDS, kind, nameHTML, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel, placeStartOver, SO_H,
     overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, menu, topBar, newButton,
     fitCanvas, cssColor, onTheme, roundRect,
   };
