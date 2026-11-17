@@ -42,9 +42,9 @@ enum SwitchLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
     /// 고급부터는 최소 조작 수를 먼저 보여주고 그 안에 풀기를 도전한다.
     var showsMinimum: Bool { self >= .hard }
 
-    /// 지옥: 최소 조작 수를 다 쓰고도 못 풀면 실패. 눌러 보고 되돌리는 시행착오를 막으려고 되돌리기도 없다.
+    /// 지옥: 최소 조작 수를 다 쓰고도 못 풀면 실패.
+    /// 되돌리기는 모든 난이도에서 횟수 제한 없이 쓰되 조작 1회로 센다(같은 칸 다시 누르기와 같으므로). UndoLimit을 따르지 않는다.
     var limitsMoves: Bool { self == .hell }
-    var allowsUndo: Bool { self != .hell }
 }
 
 struct SwitchPuzzle: Codable, Equatable {

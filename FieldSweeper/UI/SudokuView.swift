@@ -125,7 +125,7 @@ struct SudokuView: View {
     private var controls: some View {
         VStack(spacing: 12) {
             HStack(spacing: 8) {
-                PuzzleTool(title: "되돌리기", icon: "arrow.uturn.backward") { game.undo() }
+                PuzzleTool(title: PuzzleTool.undoTitle(game.undosLeft), icon: "arrow.uturn.backward") { game.undo() }
                     .disabled(!game.canUndo)
                 PuzzleTool(title: "지우기", icon: "eraser") { game.erase() }
                 PuzzleTool(title: game.noteMode ? "메모 켜짐" : "메모", icon: "pencil",

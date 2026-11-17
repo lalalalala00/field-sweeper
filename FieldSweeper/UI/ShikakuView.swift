@@ -65,7 +65,7 @@ struct ShikakuView: View {
                 }
             Spacer(minLength: 0)
             HStack(spacing: 8) {
-                PuzzleTool(title: "되돌리기", icon: "arrow.uturn.backward") { game.undo() }
+                PuzzleTool(title: PuzzleTool.undoTitle(game.undosLeft), icon: "arrow.uturn.backward") { game.undo() }
                     .disabled(!game.canUndo)
                 PuzzleTool(title: game.eraser ? "지우개 켜짐" : "지우개", icon: "eraser",
                            active: game.eraser, accent: accent) { toggleEraser() }

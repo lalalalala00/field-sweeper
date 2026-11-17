@@ -83,6 +83,12 @@ struct PuzzleIconButton: View {
 
 /// 하단 도구 버튼(되돌리기, 지우기…). active면 게임 대표 색으로 칠한다.
 struct PuzzleTool: View {
+    /// 되돌리기 버튼 이름. 횟수가 정해진 난이도에서는 남은 횟수를 붙인다.
+    static func undoTitle(_ left: Int?) -> LocalizedStringKey {
+        if let left { return "되돌리기 \(left)" }
+        return "되돌리기"
+    }
+
     let title: LocalizedStringKey
     let icon: String
     var active = false

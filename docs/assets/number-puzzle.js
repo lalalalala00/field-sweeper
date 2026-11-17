@@ -18,7 +18,8 @@ window.NumberPuzzle = function (cfg) {
   for (const o of cfg.options) opts[o.key] = store.get(`${cfg.kind}.${o.key}`, o.default);
 
   const G = { puzzle: null, values: [], notes: [], status: 'empty', selected: null, noteMode: false,
-    history: [], counted: false, timer: new Nemo.Timer(), isNewBest: false };
+    history: [], counted: false, undosUsed: 0, timer: new Nemo.Timer(), isNewBest: false };
+  const undosLeft = () => (G.puzzle ? Math.max(0, Nemo.undoLimit(levelOf(G.puzzle).name) - G.undosUsed) : Infinity);
   const n = () => (G.puzzle ? cfg.size(G.puzzle) : cfg.emptySize);
   const isGiven = i => !!(G.puzzle && G.puzzle.givens[i]);
   const levelOf = p => cfg.levels.find(l => l.id === p.level) || cfg.levels[0];
@@ -35,6 +36,7 @@ window.NumberPuzzle = function (cfg) {
     G.selected = null;
     G.noteMode = false;
     G.counted = saved ? !!saved.counted : false;
+    G.undosUsed = saved ? saved.undosUsed || 0 : 0;
     G.isNewBest = false;
     G.timer = new Nemo.Timer(saved ? saved.elapsed : 0);
     G.timer.start();
@@ -52,7 +54,7 @@ window.NumberPuzzle = function (cfg) {
   }
   function save() {
     if (G.status !== 'playing') return;
-    store.set(saveKey, { puzzle: G.puzzle, values: G.values, notes: G.notes, elapsed: G.timer.seconds, counted: G.counted, savedAt: Date.now() });
+    store.set(saveKey, { puzzle: G.puzzle, values: G.values, notes: G.notes, elapsed: G.timer.seconds, counted: G.counted, undosUsed: G.undosUsed, savedAt: Date.now() });
   }
 
   // ── 입력 ──
@@ -89,8 +91,9 @@ window.NumberPuzzle = function (cfg) {
     render(); save();
   }
   function undo() {
-    if (G.status !== 'playing' || !G.history.length) return;
+    if (G.status !== 'playing' || !G.history.length || !undosLeft()) return;
     const last = G.history.pop();
+    G.undosUsed++;
     for (const c of last.slice().reverse()) { G.values[c.i] = c.v; G.notes[c.i] = c.m; }
     G.selected = last[0].i;
     render(); save();
@@ -134,7 +137,8 @@ window.NumberPuzzle = function (cfg) {
   let keyCount = 0;
   function renderControls() {
     const playing = G.status === 'playing', size = n();
-    tools.undo.disabled = !playing || !G.history.length;
+    tools.undo.disabled = !playing || !G.history.length || !undosLeft();
+    tools.undo.querySelector('span').textContent = Nemo.undoLabel(undosLeft());
     tools.erase.disabled = !playing;
     tools.note.disabled = !playing;
     tools.note.setAttribute('aria-pressed', G.noteMode);
@@ -264,7 +268,6 @@ window.NumberPuzzle = function (cfg) {
   window.addEventListener('pagehide', save);
 
   document.title = `${K.title} · ${t('네모 안에 네모')}`;
-  tools.undo.querySelector('span').textContent = t('되돌리기');
   tools.erase.querySelector('span').textContent = t('지우기');
   tools.undo.setAttribute('aria-label', t('되돌리기'));
   tools.erase.setAttribute('aria-label', t('지우기'));

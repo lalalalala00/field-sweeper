@@ -9,6 +9,8 @@ struct SudokuSnapshot: Codable {
     var elapsed: TimeInterval
     var counted: Bool
     var savedAt: Date
+    /// 이 판에서 쓴 되돌리기 횟수. 예전 저장에는 없다.
+    var undosUsed: Int? = nil
 
     /// 빈칸 중 채운 비율.
     var progress: Double {
@@ -69,11 +71,15 @@ final class SudokuGame {
     private var history: [[Change]] = []
     /// 첫 입력을 했는지. 이때 한 판으로 센다.
     private(set) var counted = false
+    /// 이 판에서 쓴 되돌리기 횟수. 난이도별 한도는 UndoLimit.
+    private(set) var undosUsed = 0
     private var accumulated: TimeInterval = 0
     private var runningSince: Date?
 
     var level: SudokuLevel { puzzle?.level ?? .easy }
-    var canUndo: Bool { !history.isEmpty && status == .playing }
+    var canUndo: Bool { !history.isEmpty && status == .playing && undosLeft != 0 }
+    /// 남은 되돌리기 횟수. nil이면 무제한.
+    var undosLeft: Int? { UndoLimit.count(forLevel: level.name).map { max(0, $0 - undosUsed) } }
 
     func elapsed(at now: Date) -> TimeInterval {
         accumulated + (runningSince.map { now.timeIntervalSince($0) } ?? 0)
@@ -89,6 +95,7 @@ final class SudokuGame {
         selected = nil
         noteMode = false
         counted = false
+        undosUsed = 0
         isNewBest = false
         accumulated = 0
         runningSince = .now
@@ -105,6 +112,7 @@ final class SudokuGame {
         selected = nil
         noteMode = false
         counted = s.counted
+        undosUsed = s.undosUsed ?? 0
         isNewBest = false
         accumulated = s.elapsed
         runningSince = .now
@@ -121,7 +129,7 @@ final class SudokuGame {
     func snapshot() -> SudokuSnapshot? {
         guard status == .playing, let puzzle else { return nil }
         return SudokuSnapshot(puzzle: puzzle, values: values, notes: notes,
-                              elapsed: elapsed(at: .now), counted: counted, savedAt: .now)
+                              elapsed: elapsed(at: .now), counted: counted, savedAt: .now, undosUsed: undosUsed)
     }
 
     func pause() {
@@ -172,7 +180,8 @@ final class SudokuGame {
     }
 
     func undo() {
-        guard status == .playing, let last = history.popLast() else { return }
+        guard canUndo, let last = history.popLast() else { return }
+        undosUsed += 1
         for c in last.reversed() {
             values[c.index] = c.value
             notes[c.index] = c.notes

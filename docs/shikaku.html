@@ -43,10 +43,11 @@
   let showTimer = store.get('showTimer', true);
 
   const G = { puzzle: null, regions: [], status: 'empty', eraser: false, erasing: null, history: [],
-    counted: false, timer: new Nemo.Timer(), isNewBest: false };
+    counted: false, undosUsed: 0, timer: new Nemo.Timer(), isNewBest: false };
   const size = () => (G.puzzle ? G.puzzle.size : 5);
   const level = () => E.LEVELS[(G.puzzle ? G.puzzle.level : 1) - 1];
   const subtitle = () => (G.puzzle ? `${t(level().name)} · ${size()}×${size()}` : '');
+  const undosLeft = () => (G.puzzle ? Math.max(0, Nemo.undoLimit(level().name) - G.undosUsed) : Infinity);
   const area = () => G.regions.reduce((a, r) => a + R.area(r.rect), 0);
 
   // ── 시작·저장 ──
@@ -57,6 +58,7 @@
     G.eraser = false;
     G.erasing = null;
     G.counted = saved ? !!saved.counted : false;
+    G.undosUsed = saved ? saved.undosUsed || 0 : 0;
     G.isNewBest = false;
     G.timer = new Nemo.Timer(saved ? saved.elapsed : 0);
     G.timer.start();
@@ -73,7 +75,7 @@
   }
   function save() {
     if (G.status !== 'playing') return;
-    store.set('shikaku.save', { puzzle: G.puzzle, regions: G.regions, elapsed: G.timer.seconds, counted: G.counted, savedAt: Date.now() });
+    store.set('shikaku.save', { puzzle: G.puzzle, regions: G.regions, elapsed: G.timer.seconds, counted: G.counted, undosUsed: G.undosUsed, savedAt: Date.now() });
   }
 
   // ── 영역 ──
@@ -115,8 +117,10 @@
     render(); save();
   }
   function undo() {
-    const last = G.status === 'playing' && G.history.pop();
+    if (G.status !== 'playing' || !undosLeft()) return;
+    const last = G.history.pop();
     if (!last) return;
+    G.undosUsed++;
     if (last.type === 'add') removeRegion(last.regions[0]);
     else if (last.type === 'remove') G.regions.push(...last.regions);
     else G.regions = last.regions;
@@ -163,7 +167,8 @@
     q('[data-pause]').disabled = G.status !== 'playing';
     wrap.classList.toggle('empty', G.status === 'empty');
     const playing = G.status === 'playing';
-    tools.undo.disabled = !playing || !G.history.length;
+    tools.undo.disabled = !playing || !G.history.length || !undosLeft();
+    tools.undo.querySelector('span').textContent = Nemo.undoLabel(undosLeft());
     tools.eraser.disabled = !playing;
     tools.eraser.setAttribute('aria-pressed', G.eraser);
     tools.eraser.querySelector('span').textContent = t(G.eraser ? '지우개 켜짐' : '지우개');
@@ -421,7 +426,6 @@
   window.addEventListener('pagehide', save);
 
   document.title = `${K.title} · ${t('네모 안에 네모')}`;
-  tools.undo.querySelector('span').textContent = t('되돌리기');
   tools.clear.querySelector('span').textContent = t('전체 지우기');
   if (!restore(store.get('shikaku.save', null))) { render(); showLevels(); }
 })();

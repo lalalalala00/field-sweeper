@@ -21,7 +21,7 @@
     '횟수 제한': ['Move limit', '手数制限', '步数限制'],
     '최소 {0}회 안에 풀지 못했어요': ['Not solved within {0} moves', '{0}手以内に解けませんでした', '未能在 {0} 步内完成'],
     '지옥에서는 최소 횟수 안에 모든 불을 켜야 해요.': ['In Hell, every light must be on within the fewest moves.', '地獄では最少手数以内にすべての明かりをつける必要があります。', '地狱难度必须在最少步数内点亮所有灯。'],
-    '최소 횟수 안에 풀어야 해요. 되돌리기는 쓸 수 없어요.': ['Solve it within the fewest moves. Undo is off.', '最少手数以内に解いてください。元に戻すは使えません。', '必须在最少步数内完成，不能撤销。'],
+    '최소 횟수 안에 풀어야 해요. 되돌리기도 1회로 세요.': ['Solve it within the fewest moves. Undo counts as a move too.', '最少手数以内に解いてください。元に戻すも1手に数えます。', '必须在最少步数内完成，撤销也算一步。'],
     '누른 칸의 가로줄과 세로줄이 모두 바뀌어요. 불을 모두 켜 주세요.': ['Tapping a square flips its whole row and column. Turn every light on.', 'マスを押すと、その横の列と縦の列がすべて切り替わります。すべての明かりをつけてください。', '点击方格会切换整行和整列。把所有灯都点亮。'],
   };
   const TABLE = Object.assign({}, window.NEMO_I18N || {}, EXTRA);
@@ -135,6 +135,12 @@
     },
     totalPlays: () => KINDS.reduce((a, k) => a + stats.load(k.id).plays, 0),
   };
+
+  // 난이도별 되돌리기 횟수: 초급·커스텀 무제한, 오를수록 줄고 지옥은 없다(앱 UndoLimit.swift와 같은 표).
+  // 숫자 지우기·영역 지우기·다시 누르기 같은 직접 고치기는 횟수와 상관없다.
+  const UNDO = { '중급': 5, '고급': 3, '전문가': 1, '지옥': 0 };
+  const undoLimit = levelName => (levelName in UNDO ? UNDO[levelName] : Infinity);
+  const undoLabel = left => (left === Infinity ? t('되돌리기') : t('되돌리기 {0}', left));
 
   const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -277,7 +283,7 @@
 
   window.Nemo = {
     store, t, setLang, get lang() { return lang; }, get langPref() { return langPref; },
-    KINDS, kind, symbol, icon, stats, clock, esc, Timer,
+    KINDS, kind, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel,
     overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, menu, topBar,
     fitCanvas, cssColor, onTheme, roundRect,
   };

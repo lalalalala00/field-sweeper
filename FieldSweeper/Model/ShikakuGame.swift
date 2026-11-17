@@ -13,6 +13,8 @@ struct ShikakuSnapshot: Codable {
     var elapsed: TimeInterval
     var counted: Bool
     var savedAt: Date
+    /// 이 판에서 쓴 되돌리기 횟수. 예전 저장에는 없다.
+    var undosUsed: Int? = nil
 
     /// 영역으로 덮은 칸의 비율.
     var progress: Double {
@@ -63,12 +65,16 @@ final class ShikakuGame {
 
     private var history: [Action] = []
     private(set) var counted = false
+    /// 이 판에서 쓴 되돌리기 횟수. 난이도별 한도는 UndoLimit.
+    private(set) var undosUsed = 0
     private var accumulated: TimeInterval = 0
     private var runningSince: Date?
 
     var level: ShikakuLevel { puzzle?.level ?? .easy }
     var size: Int { puzzle?.size ?? 5 }
-    var canUndo: Bool { !history.isEmpty && status == .playing }
+    var canUndo: Bool { !history.isEmpty && status == .playing && undosLeft != 0 }
+    /// 남은 되돌리기 횟수. nil이면 무제한.
+    var undosLeft: Int? { UndoLimit.count(forLevel: level.name).map { max(0, $0 - undosUsed) } }
 
     func elapsed(at now: Date) -> TimeInterval {
         accumulated + (runningSince.map { now.timeIntervalSince($0) } ?? 0)
@@ -88,6 +94,7 @@ final class ShikakuGame {
         eraser = false
         erasing = nil
         counted = false
+        undosUsed = 0
         isNewBest = false
         accumulated = 0
         runningSince = .now
@@ -105,6 +112,7 @@ final class ShikakuGame {
         eraser = false
         erasing = nil
         counted = s.counted
+        undosUsed = s.undosUsed ?? 0
         isNewBest = false
         accumulated = s.elapsed
         runningSince = .now
@@ -119,7 +127,7 @@ final class ShikakuGame {
 
     func snapshot() -> ShikakuSnapshot? {
         guard status == .playing, let puzzle else { return nil }
-        return ShikakuSnapshot(puzzle: puzzle, regions: regions, elapsed: elapsed(at: .now), counted: counted, savedAt: .now)
+        return ShikakuSnapshot(puzzle: puzzle, regions: regions, elapsed: elapsed(at: .now), counted: counted, savedAt: .now, undosUsed: undosUsed)
     }
 
     func pause() {
@@ -202,7 +210,8 @@ final class ShikakuGame {
     }
 
     func undo() {
-        guard status == .playing, let last = history.popLast() else { return }
+        guard canUndo, let last = history.popLast() else { return }
+        undosUsed += 1
         switch last {
         case .add(let region): regions.removeAll { $0.rect == region.rect }
         case .remove(let erased): regions.append(contentsOf: erased)

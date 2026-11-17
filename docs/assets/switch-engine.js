@@ -6,8 +6,8 @@
     { id: 2, name: '중급', size: 4, moves: [4, 7], showsMinimum: false },
     { id: 3, name: '고급', size: 6, moves: [8, 14], showsMinimum: true },
     { id: 4, name: '전문가', size: 8, moves: [15, 25], showsMinimum: true },
-    // 지옥: 최소 조작 수를 다 쓰고도 못 풀면 실패. 눌러 보고 되돌리는 시행착오를 막으려고 되돌리기도 없다.
-    { id: 5, name: '지옥', size: 8, moves: [18, 28], showsMinimum: true, limitsMoves: true, noUndo: true },
+    // 지옥: 최소 조작 수를 다 쓰고도 못 풀면 실패. 되돌리기 횟수는 다른 게임과 같은 표를 따른다(지옥은 0).
+    { id: 5, name: '지옥', size: 8, moves: [18, 28], showsMinimum: true, limitsMoves: true },
   ];
 
   // (r, c)를 누르면 같은 가로줄과 세로줄의 모든 칸이 바뀐다. 누른 칸은 한 번만 바뀐다. state[i]가 true면 켜진 불.

@@ -1008,6 +1008,28 @@
         }
       }
     },
+    "되돌리기 %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元に戻す %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤销 %lld"
+          }
+        }
+      }
+    },
     "되돌리기로 다시 살릴 수 있어요." : {
       "localizations" : {
         "en" : {
