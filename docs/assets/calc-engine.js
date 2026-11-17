@@ -10,6 +10,10 @@
     { id: 2, name: '중급', size: 5, ops: '+-*', sizes: [0, 5, 4, 1], maxSingles: 2, tier: [1, 1] },
     { id: 3, name: '고급', size: 6, ops: '+-*/', sizes: [0, 4, 4, 2], maxSingles: 1, tier: [2, 2] },
     { id: 4, name: '전문가', size: 7, ops: '+-*/', sizes: [0, 3, 4, 3, 1], maxSingles: 1, tier: [3, 3] },
+    // 지옥: 처음 숫자 0개(1칸 묶음 없음), 숫자 조합이 한 가지뿐인 묶음은 maxPlain개까지, 묶음 계산만으로 바로 정해지는 칸 0개,
+    // 가정 없이 3단계까지로 풀림. search 동안 만들어 보고 2·3단계 추리를 가장 많이 써야 하는 판을 낸다(enough번 이상이면 바로).
+    // 조합이 한 가지뿐인 묶음(주로 ×·÷)을 모두 빼면 실마리가 너무 약해 답이 하나인 판이 거의 나오지 않아서 2개까지 둔다.
+    { id: 5, name: '지옥', size: 8, ops: '+-*/', sizes: [0, 4, 5, 2], maxSingles: 0, tier: [3, 3], hell: true, maxPlain: 2, search: 4000, enough: 8 },
   ];
   const SYMBOL = { '+': '+', '-': '−', '*': '×', '/': '÷', '=': '' };
 
@@ -120,7 +124,7 @@
       lines.push([...Array(n)].map((_, j) => j * n + k));
     }
     const lineOf = (i, isRow) => lines[isRow ? Math.floor(i / n) * 2 : (i % n) * 2 + 1];
-    let tier = 0, steps = 0;
+    let tier = 0, steps = 0, opening = -1;
 
     // 묶음 조합을 지금 후보에 맞게 거르고, 칸 후보를 조합에 나오는 숫자로 줄인다.
     function cagePass() {
@@ -207,10 +211,12 @@
       const cp = cagePass();
       if (cp === null) return null;
       if (cand.some(m => !m)) return null;
+      // 묶음 계산만 한 번 하고 바로 정해지는 칸 수(지옥은 0이어야 한다)
+      if (opening < 0) opening = cand.filter(m => popcount(m) === 1).length;
       if (cp || singles()) { tier = Math.max(tier, 1); continue; }
       if (cand.every(m => popcount(m) === 1)) {
         const values = cand.map(bitOf);
-        return check(puzzle, values) ? { tier, steps, values } : null;
+        return check(puzzle, values) ? { tier, steps, opening, values } : null;
       }
       if (maxTier >= 2 && (nakedSubsets(2) || cageMusts())) { tier = Math.max(tier, 2); steps++; continue; }
       if (maxTier >= 3 && (nakedSubsets(3) || hiddenPairs())) { tier = 3; steps++; continue; }
@@ -261,12 +267,45 @@
     if (ops.includes('*') && Math.random() < 0.45) return { op: '*', target: values.reduce((a, b) => a * b, 1) };
     return { op: '+', target: values.reduce((a, b) => a + b, 0) };
   }
+  // 묶음에 들어갈 수 있는 숫자 묶음(순서 무시)이 2가지 이상인지. 한 가지뿐이면 그 묶음만 보고 숫자를 알 수 있다.
+  const ambiguous = (cage, n) => new Set(tuplesOf(cage, n).map(t => t.slice().sort((a, b) => a - b).join(','))).size >= 2;
+  // 지옥 묶음: 1칸 묶음이 없어야 하고, 묶음마다 조합이 여러 가지인 연산을 고른다(없으면 아무 연산, 그런 묶음은 maxPlain개까지).
+  function hellCages(n, L, solution) {
+    const parts = partition(n, L);
+    if (parts.some(c => c.length === 1)) return null;
+    let plain = 0;
+    const cages = parts.map(cells => {
+      const v = cells.map(i => solution[i]), hi = Math.max(...v), lo = Math.min(...v);
+      const options = [{ op: '+', target: v.reduce((a, b) => a + b, 0) }, { op: '*', target: v.reduce((a, b) => a * b, 1) }];
+      if (v.length === 2) { options.push({ op: '-', target: hi - lo }); if (hi % lo === 0) options.push({ op: '/', target: hi / lo }); }
+      const all = shuffle(options).map(o => ({ cells, ...o }));
+      const pick = all.find(c => ambiguous(c, n));
+      if (pick) return pick;
+      plain++;
+      return all[0];
+    });
+    return plain <= L.maxPlain ? cages : null;
+  }
   function generate(levelId) {
     const L = LEVELS[levelId - 1], n = L.size;
     const start = Date.now();
-    let fallback = null;
+    let fallback = null, best = null;
     for (let attempt = 0; ; attempt++) {
       const solution = randomLatin(n);
+      if (L.hell) {
+        const cages = hellCages(n, L, solution);
+        if (cages) {
+          const puzzle = { size: n, cages, givens: new Array(n * n).fill(0), solution, level: levelId };
+          const g = grade(puzzle, L.tier[1]);
+          if (g && g.tier >= L.tier[0] && g.opening === 0) {
+            if (g.steps >= L.enough) return puzzle;
+            if (!best || g.steps > best.steps) best = { puzzle, steps: g.steps };
+          }
+        }
+        if (best && Date.now() > start + L.search) return best.puzzle;
+        if (Date.now() > start + 30000) throw new Error('calc: could not generate');
+        continue;
+      }
       const cages = partition(n, L).map(cells => ({ cells, ...chooseOp(cells.map(i => solution[i]), L.ops) }));
       const givens = new Array(n * n).fill(0);
       for (const c of cages) if (c.op === '=') givens[c.cells[0]] = c.target;
@@ -284,5 +323,5 @@
   // 묶음 이름표: "12×", 1칸 묶음은 숫자만
   const label = cage => `${cage.target}${SYMBOL[cage.op]}`;
 
-  root.CalcEngine = { LEVELS, SYMBOL, randomLatin, fits, tuplesOf, check, wrongCages, countSolutions, grade, generate, label };
+  root.CalcEngine = { LEVELS, SYMBOL, randomLatin, fits, tuplesOf, check, wrongCages, countSolutions, grade, generate, label, partition, ambiguous };
 })(typeof self !== 'undefined' ? self : globalThis);

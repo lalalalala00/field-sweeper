@@ -65,7 +65,8 @@
       howto: ['원하는 칸을 선택한 뒤 하단의 숫자 버튼을 누르면 입력돼요. 같은 숫자를 다시 누르면 삭제돼요.',
         '메모 모드를 켜면 가능한 숫자 후보를 칸 안에 작게 표시할 수 있어요.',
         '같은 가로줄 또는 세로줄에 숫자가 중복되면 빨간색으로, 다 채운 묶음의 계산이 틀리면 묶음 이름표가 빨간색으로 표시돼요.',
-        UNDO],
+        UNDO,
+        '지옥 난이도는 처음부터 정해진 숫자가 없고, 되돌리기를 쓸 수 없어요.'],
     },
     star: {
       title: 'Star Squares',
@@ -165,6 +166,7 @@
     '같은 가로줄이나 세로줄만 아니면 한 묶음 안에 같은 숫자가 여러 번 들어갈 수 있어요.': ['A number can repeat inside a cage as long as it isn’t in the same row or column.', '同じ横や縦の列でなければ、1つのブロックに同じ数字が何度入ってもかまいません。', '只要不在同一横行或竖列，同一区块内可以出现相同的数字。'],
     '숫자 하나만 적힌 한 칸 묶음은 처음부터 정해진 칸이에요.': ['A one-square cage showing a single number is already filled in.', '数字が1つだけ書かれた1マスのブロックは、最初から決まっているマスです。', '只写有一个数字的单格区块是一开始就确定的格子。'],
     '같은 가로줄 또는 세로줄에 숫자가 중복되면 빨간색으로, 다 채운 묶음의 계산이 틀리면 묶음 이름표가 빨간색으로 표시돼요.': ['A number repeated in a row or column turns red, and a filled cage whose math is wrong shows its label in red.', '同じ横や縦の列で数字が重なると赤く、埋めたブロックの計算が合わないとブロックのラベルが赤く表示されます。', '同一横行或竖列中数字重复时会显示为红色；填满的区块计算错误时，区块标签会显示为红色。'],
+    '지옥 난이도는 처음부터 정해진 숫자가 없고, 되돌리기를 쓸 수 없어요.': ['Hell starts with no numbers filled in, and undo isn’t available.', '地獄は最初から決まっている数字がなく、元に戻すも使えません。', '地狱难度一开始没有任何已知数字，也不能撤销。'],
     // 거울네모
     '거울의 방향을 바꿔 빛이 모든 별을 지나 목적지에 도달하도록 만드는 논리 퍼즐': ['A logic puzzle where you turn mirrors so the light passes every star and reaches the goal', '鏡の向きを変えて、光がすべての星を通り目的地に届くようにする論理パズル', '调整镜子方向，让光穿过所有星星并到达终点的逻辑谜题'],
     '빛은 주황색 시작점에서 직진하며, 거울에 닿으면 90도로 방향이 바뀌어요.': ['Light travels straight from the orange start and turns 90° when it hits a mirror.', '光はオレンジの出発点からまっすぐ進み、鏡に当たると90度向きが変わります。', '光从橙色起点笔直射出，碰到镜子会转 90 度。'],

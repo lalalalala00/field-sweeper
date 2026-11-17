@@ -3,7 +3,7 @@ import Foundation
 /// 셈네모 난이도. 판 크기, 쓸 수 있는 연산, 묶음 크기, 풀이에 필요한 추리 단계로 정한다.
 /// 웹 docs/assets/calc-engine.js와 같은 규칙이다. 규칙을 바꾸면 양쪽을 함께 고친다.
 enum CalcLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
-    case easy = 1, medium, hard, expert
+    case easy = 1, medium, hard, expert, hell
 
     var id: Int { rawValue }
     static func < (a: Self, b: Self) -> Bool { a.rawValue < b.rawValue }
@@ -14,6 +14,7 @@ enum CalcLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         case .medium: "중급"
         case .hard: "고급"
         case .expert: "전문가"
+        case .hell: "지옥"
         }
     }
 
@@ -23,6 +24,7 @@ enum CalcLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         case .medium: 5
         case .hard: 6
         case .expert: 7
+        case .hell: 8
         }
     }
 
@@ -30,7 +32,7 @@ enum CalcLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         switch self {
         case .easy: [.add, .sub]
         case .medium: [.add, .sub, .mul]
-        case .hard, .expert: [.add, .sub, .mul, .div]
+        case .hard, .expert, .hell: [.add, .sub, .mul, .div]
         }
     }
 
@@ -41,20 +43,33 @@ enum CalcLevel: Int, Codable, CaseIterable, Identifiable, Comparable {
         case .medium: [0, 5, 4, 1]
         case .hard: [0, 4, 4, 2]
         case .expert: [0, 3, 4, 3, 1]
+        case .hell: [0, 4, 5, 2]
         }
     }
 
     /// 1칸 묶음(주어진 숫자)의 최대 개수.
-    var maxSingles: Int { self <= .medium ? 2 : 1 }
+    var maxSingles: Int {
+        switch self {
+        case .easy, .medium: 2
+        case .hard, .expert: 1
+        case .hell: 0
+        }
+    }
 
     /// 사람처럼 푸는 풀이기(CalcEngine.grade)로 풀 때 필요한 가장 어려운 추리 단계의 범위.
     var tier: ClosedRange<Int> {
         switch self {
         case .easy, .medium: 1...1
         case .hard: 2...2
-        case .expert: 3...3
+        case .expert, .hell: 3...3
         }
     }
+
+    /// 지옥: 처음 숫자 0개(1칸 묶음 없음), 숫자 조합이 한 가지뿐인 묶음은 maxPlain개까지, 묶음 계산만으로 바로 정해지는 칸 0개,
+    /// 가정 없이 3단계까지로 풀림. searchSeconds 동안 만들어 보고 2·3단계 추리를 가장 많이 써야 하는 판을 낸다(enough번 이상이면 바로).
+    /// 조합이 한 가지뿐인 묶음(주로 ×·÷)을 모두 빼면 실마리가 너무 약해 답이 하나인 판이 거의 나오지 않아서 2개까지 둔다.
+    var isHell: Bool { self == .hell }
+    static let hellMaxPlain = 2, hellSearchSeconds = 4.0, hellEnough = 8
 }
 
 /// 묶음 연산. equal은 1칸 묶음(숫자가 그대로 주어진 칸)이다.
@@ -176,8 +191,9 @@ enum CalcEngine {
     //  2단계 줄의 짝: 한 줄에서 두 칸이 같은 두 후보만 가지면 나머지 칸에서 그 둘을 지운다.
     //        묶음이 꼭 쓰는 숫자: 묶음의 모든 조합에 들어 있는 숫자가 한 줄 안에만 놓일 수 있으면 그 줄의 다른 칸에서 지운다.
     //  3단계 줄의 셋: 세 칸에 세 후보(naked triple), 줄에서 두 숫자가 같은 두 칸에만 갈 수 있음(hidden pair).
-    // 끝까지 풀리면 (쓴 가장 어려운 단계, 2단계 이상을 쓴 횟수), 막히면 nil. 끝까지 풀리면 답이 하나뿐이다.
-    static func grade(_ p: CalcPuzzle, maxTier: Int = 3) -> (tier: Int, steps: Int)? {
+    // 끝까지 풀리면 (쓴 가장 어려운 단계, 2단계 이상을 쓴 횟수, 묶음 계산만 한 번 하고 바로 정해진 칸 수), 막히면 nil.
+    // 끝까지 풀리면 답이 하나뿐이다.
+    static func grade(_ p: CalcPuzzle, maxTier: Int = 3) -> (tier: Int, steps: Int, opening: Int)? {
         let n = p.size, cellCount = n * n, full = ((1 << n) - 1) << 1
         let cages = p.cages
         var tuples = cages.map { self.tuples(of: $0, size: n) }
@@ -189,7 +205,7 @@ enum CalcEngine {
         }
         func lineOf(_ i: Int, row: Bool) -> [Int] { lines[row ? (i / n) * 2 : (i % n) * 2 + 1] }
         func pop(_ m: Int) -> Int { m.nonzeroBitCount }
-        var tier = 0, steps = 0
+        var tier = 0, steps = 0, opening = -1
 
         // 묶음 조합을 지금 후보에 맞게 거르고, 칸 후보를 조합에 나오는 숫자로 줄인다. 조합이 없으면 nil.
         func cagePass() -> Bool? {
@@ -272,10 +288,11 @@ enum CalcEngine {
         for _ in 0..<1000 {
             guard let cp = cagePass() else { return nil }
             if cand.contains(0) { return nil }
+            if opening < 0 { opening = cand.filter { pop($0) == 1 }.count }
             if cp || singles() { tier = max(tier, 1); continue }
             if cand.allSatisfy({ pop($0) == 1 }) {
                 let values = cand.map { $0.trailingZeroBitCount }
-                return check(p, values: values) ? (tier, steps) : nil
+                return check(p, values: values) ? (tier, steps, opening) : nil
             }
             if maxTier >= 2 && (nakedSubsets(2) || cageMusts()) { tier = max(tier, 2); steps += 1; continue }
             if maxTier >= 3 && (nakedSubsets(3) || hiddenPairs()) { tier = 3; steps += 1; continue }
@@ -349,11 +366,48 @@ enum CalcEngine {
         return (.add, values.reduce(0, +))
     }
 
+    /// 묶음에 들어갈 수 있는 숫자 묶음(순서 무시)이 2가지 이상인지. 한 가지뿐이면 그 묶음만 보고 숫자를 알 수 있다.
+    static func ambiguous(_ cage: CalcCage, size n: Int) -> Bool {
+        Set(tuples(of: cage, size: n).map { $0.sorted() }).count >= 2
+    }
+
+    /// 지옥 묶음: 1칸 묶음이 없어야 하고, 묶음마다 조합이 여러 가지인 연산을 고른다(없으면 아무 연산, 그런 묶음은 hellMaxPlain개까지).
+    private static func hellCages<R: RandomNumberGenerator>(_ level: CalcLevel, _ solution: [Int], using rng: inout R) -> [CalcCage]? {
+        let n = level.size, parts = partition(level, using: &rng)
+        if parts.contains(where: { $0.count == 1 }) { return nil }
+        var plain = 0
+        let cages = parts.map { cells -> CalcCage in
+            let v = cells.map { solution[$0] }, hi = v.max()!, lo = v.min()!
+            var options = [CalcCage(cells: cells, op: .add, target: v.reduce(0, +)), CalcCage(cells: cells, op: .mul, target: v.reduce(1, *))]
+            if v.count == 2 {
+                options.append(CalcCage(cells: cells, op: .sub, target: hi - lo))
+                if hi % lo == 0 { options.append(CalcCage(cells: cells, op: .div, target: hi / lo)) }
+            }
+            let all = options.shuffled(using: &rng)
+            if let pick = all.first(where: { ambiguous($0, size: n) }) { return pick }
+            plain += 1
+            return all[0]
+        }
+        return plain <= CalcLevel.hellMaxPlain ? cages : nil
+    }
+
     static func generate<R: RandomNumberGenerator>(_ level: CalcLevel, using rng: inout R) -> CalcPuzzle {
         let n = level.size, start = Date()
         var fallback: (puzzle: CalcPuzzle, tier: Int)?
+        var best: (puzzle: CalcPuzzle, steps: Int)?
         while true {
             let solution = randomLatin(n, using: &rng)
+            if level.isHell {
+                if let cages = hellCages(level, solution, using: &rng) {
+                    let puzzle = CalcPuzzle(size: n, cages: cages, givens: Array(repeating: 0, count: n * n), solution: solution, level: level)
+                    if let g = grade(puzzle, maxTier: level.tier.upperBound), g.tier >= level.tier.lowerBound, g.opening == 0 {
+                        if g.steps >= CalcLevel.hellEnough { return puzzle }
+                        if best.map({ g.steps > $0.steps }) ?? true { best = (puzzle, g.steps) }
+                    }
+                }
+                if let best, Date().timeIntervalSince(start) > CalcLevel.hellSearchSeconds { return best.puzzle }
+                continue
+            }
             let cages = partition(level, using: &rng).map { cells -> CalcCage in
                 let (op, target) = chooseOp(cells.map { solution[$0] }, level.ops, using: &rng)
                 return CalcCage(cells: cells, op: op, target: target)
