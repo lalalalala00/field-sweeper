@@ -22,6 +22,7 @@
     '규칙에 어긋난 별 표시': ['Show rule-breaking stars', 'ルール違反の星を表示', '显示违规的星星'],
     '구역 색 칠하기': ['Tint regions', '区域に色をつける', '区域上色'],
     '계산이 틀린 묶음 표시': ['Show wrong cages', '計算が合わないブロックを表示', '显示计算错误的区块'],
+    '게임 바로 가기': ['Jump to a game', 'ゲームへ移動', '跳转到游戏'],
     '게임 난이도 {0}': ['Game difficulty: {0}', 'ゲームの難しさ：{0}', '游戏难度：{0}'],
     '{0}행 {1}열': ['Row {0}, column {1}', '{0}行 {1}列', '第{0}行 第{1}列'],
     '켜진 불 {0}/{1}': ['Lights on {0}/{1}', '点灯 {0}/{1}', '亮灯 {0}/{1}'],
@@ -76,19 +77,22 @@
   document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : lang;
 
   // ── 게임 목록. 순서가 메인 화면의 번호(01, 02…)다. 이름은 모든 언어에서 영어 그대로. ──
+  // ko·en: 게임 이름. title(게임 화면 이름)은 언어와 상관없이 영어 이름이다.
   // weight: 게임 자체의 난이도(1 쉬움, 2 보통, 3 어려움). 메인 화면 카드에 작은 네모 세 개로 보인다. 앱의 GameKind.weight와 같다.
   const KINDS = [
-    { id: 'minesweeper', title: 'Field Sweeper', href: 'minesweeper.html', weight: 2 },
-    { id: 'sudoku', title: 'Sudoku', href: 'sudoku.html', weight: 3 },
-    { id: 'shikaku', title: 'Shikaku', href: 'shikaku.html', weight: 2 },
-    { id: 'futoshiki', title: 'Futoshiki', href: 'futoshiki.html', weight: 3 },
+    { id: 'minesweeper', ko: '필드 스위퍼', en: 'Field Sweeper', href: 'minesweeper.html', weight: 2 },
+    { id: 'sudoku', ko: '스도쿠', en: 'Sudoku', href: 'sudoku.html', weight: 3 },
+    { id: 'shikaku', ko: '시카쿠', en: 'Shikaku', href: 'shikaku.html', weight: 2 },
+    { id: 'futoshiki', ko: '후토시키', en: 'Futoshiki', href: 'futoshiki.html', weight: 3 },
     // 아직 만들지 않은 게임은 메인 화면에 '준비 중'으로 보인다.
-    { id: 'mirror', title: 'Mirror Squares', href: 'mirror.html', weight: 1 },
-    { id: 'pair', title: 'Pair Paths', href: 'pair.html', weight: 2 },
-    { id: 'switch', title: 'Switch Squares', href: 'switch.html', weight: 3 },
-    { id: 'calc', title: 'Calc Squares', href: 'calc.html', weight: 2 },
-    { id: 'star', title: 'Star Squares', href: 'star.html', weight: 2 },
-  ].map((k, i) => ({ ...k, number: String(i + 1).padStart(2, '0') }));
+    { id: 'mirror', ko: '거울네모', en: 'Mirror Squares', href: 'mirror.html', weight: 1 },
+    { id: 'pair', ko: '짝네모', en: 'Pair Paths', href: 'pair.html', weight: 2 },
+    { id: 'switch', ko: '스위치네모', en: 'Switch Squares', href: 'switch.html', weight: 3 },
+    { id: 'calc', ko: '셈네모', en: 'Calc Squares', href: 'calc.html', weight: 2 },
+    { id: 'star', ko: '별네모', en: 'Star Squares', href: 'star.html', weight: 2 },
+  ].map((k, i) => ({ ...k, title: k.en, number: String(i + 1).padStart(2, '0') }));
+  // 메인 화면(카드, 기록 창)의 게임 이름: 한국어 화면이면 한국어 이름 옆에 영어 이름을 작게, 다른 언어는 영어 이름만
+  const nameHTML = k => (lang === 'ko' ? `${esc(k.ko)}<small class="en-name">${esc(k.en)}</small>` : esc(k.en));
   const kind = id => KINDS.find(k => k.id === id);
 
   // ── 게임 이름 앞의 작은 상징. 모두 네모 안에 그 게임을 담은 모양이다. ──
@@ -289,6 +293,8 @@
 
   // ── 게임 화면 위쪽 막대: 뒤로, 상징과 이름·부제, 시간, 일시정지, 더보기 ──
   function topBar(id) {
+    // 메인 화면 번호 줄에서 마지막에 연 게임에 동그라미를 친다
+    store.set('lastGame', id);
     const k = kind(id);
     const el = document.createElement('header');
     el.className = 'topbar';
@@ -343,7 +349,7 @@
 
   window.Nemo = {
     store, t, setLang, get lang() { return lang; }, get langPref() { return langPref; },
-    KINDS, kind, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel,
+    KINDS, kind, nameHTML, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel,
     overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, menu, topBar, newButton,
     fitCanvas, cssColor, onTheme, roundRect,
   };

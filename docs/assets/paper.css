@@ -23,6 +23,8 @@
   --ft-related: #e9eef5; --ft-same: #d3dcea; --ft-guide: #4d6a94; --ft-line: #d9d5c3;
   --sk-thin: #dedacb; --sk1: #d7e4ce; --sk2: #dce4f0; --sk3: #f1dccb; --sk4: #f0e6bc; --sk5: #e4deee; --sk6: #d9e9de;
   --f-serif: ui-serif, "New York", Georgia, "Times New Roman", serif;
+  /* 번호용 세리프: Georgia는 숫자 높이가 들쑥날쑥한 모양뿐이라 건너뛴다 */
+  --f-serif-num: ui-serif, "New York", "Times New Roman", serif;
   --f-round: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif;
   --f-body: system-ui, -apple-system, "Apple SD Gothic Neo", "Hiragino Sans", "PingFang SC", sans-serif;
   color-scheme: light;
@@ -184,3 +186,11 @@ canvas.board { display: block; touch-action: none; border-radius: 6px; }
 .segmented button[aria-pressed="true"] { background: var(--bg); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); font-weight: 600; }
 .hint { font-size: 12px; color: var(--ink-soft); margin: 0; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* 스크롤바: 둥근 막대 대신 모서리가 거의 각진 얇은 막대(네모). 바탕은 투명, 올리면 잉크색.
+   Chrome·Safari는 ::-webkit-scrollbar로 모양까지, Firefox는 굵기와 색만 바꾼다. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule); border: 3px solid transparent; background-clip: padding-box; border-radius: 1px; min-height: 28px; }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background: var(--ink-soft); background-clip: padding-box; }
+@supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: var(--rule) transparent; } }

@@ -303,6 +303,14 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   .hint { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* 스크롤바: 둥근 막대 대신 모서리가 거의 각진 얇은 막대(네모). 바탕은 투명, 올리면 잉크색.
+   Chrome·Safari는 ::-webkit-scrollbar로 모양까지, Firefox는 굵기와 색만 바꾼다. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border: 3px solid transparent; background-clip: padding-box; border-radius: 1px; min-height: 28px; }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background: var(--ink-soft); background-clip: padding-box; }
+@supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: var(--line) transparent; } }
 </style>
 
 </head>
@@ -478,6 +486,8 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     get(k, d) { try { const v = localStorage.getItem('fs:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem('fs:' + k, JSON.stringify(v)); } catch {} },
   };
+  // 메인 화면 번호 줄에서 마지막에 연 게임에 동그라미를 친다
+  store.set('lastGame', 'minesweeper');
 
   // ── 번역: 한국어 문구를 키로 쓰고 [영어, 일본어, 중국어 간체]를 둔다 ──
   const I18N = {"뒤로": ["Back", "戻る", "返回"],
