@@ -67,7 +67,7 @@ enum SubPalette {
     static let all: [UIColor] = [rose, apricot, lilac, mint]
 }
 
-/// 새로 만들 게임 3종의 카드 색(시안 '새 게임 카드 색' 조합 B).
+/// 새로 만들 게임의 카드 색(거울·짝·스위치네모는 시안 '새 게임 카드 색' 조합 B, 셈네모는 돌 회색).
 /// 각 게임을 GameKind에 추가할 때 fill과 text로 옮기고, 여기서는 지운다.
 enum NewGameCards {
     /// 거울네모: 자두. 글자는 흰색(지뢰찾기·후토시키 카드와 같은 쪽).
@@ -79,6 +79,9 @@ enum NewGameCards {
     /// 스위치네모: 민트(보조 팔레트). 글자는 Deep Green.
     static let switches = SubPalette.mint
     static let switchesText = Paper.ink
+    /// 셈네모: 계산기 같은 돌 회색. 글자는 Deep Green. 웹 paper.css의 --fill-calc와 같다.
+    static let calc = UIColor.dynamic(0xcfc9bb, 0x3a3832)
+    static let calcText = Paper.ink
 }
 
 extension Color {

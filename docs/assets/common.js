@@ -10,6 +10,7 @@
   const EXTRA = {
     '네모 안에 네모': ['Nemo in Nemo', 'ネモ・イン・ネモ', '方中方'],
     '웹': ['Web', 'Web', '网页版'],
+    '계산이 틀린 묶음 표시': ['Show wrong cages', '計算が合わないブロックを表示', '显示计算错误的区块'],
     '게임 난이도 {0}': ['Game difficulty: {0}', 'ゲームの難しさ：{0}', '游戏难度：{0}'],
     '{0}행 {1}열': ['Row {0}, column {1}', '{0}行 {1}列', '第{0}行 第{1}列'],
     '켜진 불 {0}/{1}': ['Lights on {0}/{1}', '点灯 {0}/{1}', '亮灯 {0}/{1}'],
@@ -74,6 +75,7 @@
     { id: 'mirror', title: 'Mirror Squares', href: 'mirror.html', weight: 1 },
     { id: 'pair', title: 'Pair Paths', href: 'pair.html', weight: 2 },
     { id: 'switch', title: 'Switch Squares', href: 'switch.html', weight: 3 },
+    { id: 'calc', title: 'Calc Squares', href: 'calc.html', weight: 2 },
   ].map((k, i) => ({ ...k, number: String(i + 1).padStart(2, '0') }));
   const kind = id => KINDS.find(k => k.id === id);
 
@@ -107,6 +109,9 @@
     } else if (id === 'pair') {
       // 두 점을 잇는 길
       body = `<path d="M7 7v10h10" fill="none" stroke="currentColor" stroke-width="${thin * 1.15}" stroke-linejoin="round"/><circle cx="7" cy="7" r="2.1" fill="currentColor"/><circle cx="17" cy="17" r="2.1" fill="currentColor"/>`;
+    } else if (id === 'calc') {
+      // 칸 묶음의 덧셈·곱셈
+      body = `<path d="M8.5 5.5v6M5.5 8.5h6M13.4 13.4l5.2 5.2M18.6 13.4l-5.2 5.2" stroke="currentColor" stroke-width="${thin * 1.1}" stroke-linecap="round"/>`;
     } else if (id === 'switch') {
       // 누른 칸과 함께 바뀌는 가로줄·세로줄
       body = `<path d="M12 ${line}V${s - line}M${line} 12H${s - line}" stroke="currentColor" stroke-width="${thin}"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/>`;

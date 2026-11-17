@@ -1,4 +1,4 @@
-// 칸을 골라 숫자를 넣는 퍼즐(스도쿠, 후토시키)의 공통 진행. 앱의 SudokuGame/FutoshikiGame과 각 View를 옮겼다.
+// 칸을 골라 숫자를 넣는 퍼즐(스도쿠, 후토시키, 셈네모)의 공통 진행. 앱의 SudokuGame/FutoshikiGame과 각 View를 옮겼다.
 // 게임마다 다른 것(판 그리기, 이웃 칸, 생성, 메뉴 항목)은 cfg로 받는다.
 window.NumberPuzzle = function (cfg) {
   const { t, store, stats, clock } = Nemo;
