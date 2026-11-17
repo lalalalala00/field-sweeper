@@ -324,6 +324,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
         <div class="menu" id="moreMenu" role="menu" hidden>
           <button role="menuitem" id="saveBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>저장</button>
           <button role="menuitem" id="openSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>설정</button>
+          <button role="menuitem" id="openRules"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.1-2.4 3.7"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>규칙 보기</button>
         </div>
       </div>
     </div>
@@ -448,6 +449,8 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   </div>
 </div>
 
+<script src="assets/common.js"></script>
+<script src="assets/rules.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -478,6 +481,7 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
 
   // ── 번역: 한국어 문구를 키로 쓰고 [영어, 일본어, 중국어 간체]를 둔다 ──
   const I18N = {"뒤로": ["Back", "戻る", "返回"],
+    "규칙 보기": ["Rules", "ルールを見る", "查看规则"],
     "남은 지뢰": ["Mines left", "残りの地雷", "剩余地雷"],
     "물음표": ["Question mark", "はてなマーク", "问号"],
     "시간": ["Time", "時間", "用时"],
@@ -1035,6 +1039,13 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
   document.addEventListener('click', e => { if (!e.target.closest('.more')) toggleMenu(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
   $('openSettings').onclick = () => { toggleMenu(false); openSettings(); };
+  // 규칙을 보는 동안은 시간을 멈춘다(설정 창과 같은 방식).
+  $('openRules').onclick = () => {
+    toggleMenu(false);
+    const froze = S && S.status === 'playing' && !S.paused;
+    if (froze) freeze();
+    NemoRules.show('minesweeper', () => { if (froze && $('pauseBox').hidden) unfreeze(); });
+  };
   $('saveBtn').addEventListener('click', () => toggleMenu(false));
   $('closeSettings').onclick = closeSettings;
   $('settings').addEventListener('click', e => { if (e.target.id === 'settings') closeSettings(); });
@@ -1221,6 +1232,8 @@ body.ground-dark { --n1: #84aaff; --n2: #74d083; --n3: #ff7c68; --n4: #b8a0ff; -
     if (saved && saved.st && saved.cfg) showResume(saved);
   }
   start({});
+  // 처음 들어온 게임이면 규칙을 한 번 보여준다.
+  NemoRules.showOnce('minesweeper');
 })();
 </script>
 </body>

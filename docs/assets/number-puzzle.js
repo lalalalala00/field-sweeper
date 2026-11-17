@@ -261,7 +261,15 @@ window.NumberPuzzle = function (cfg) {
     { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing', onClick: askRestart },
     { section: t('표시') },
     ...cfg.options.map(o => ({ label: t(o.label), checked: opts[o.key], onChange: v => { opts[o.key] = v; store.set(`${cfg.kind}.${o.key}`, v); render(); } })),
+    { sep: true },
+    { label: t('규칙 보기'), icon: 'help', onClick: showRules },
   ]);
+  // 규칙을 보는 동안은 시간을 멈춘다.
+  function showRules() {
+    const running = G.timer.running;
+    G.timer.pause();
+    NemoRules.show(cfg.kind, () => { if (running) G.timer.start(); });
+  }
 
   // 다른 탭이나 앱으로 가면 저장하고 일시정지 화면을 띄운다.
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
@@ -273,7 +281,9 @@ window.NumberPuzzle = function (cfg) {
   tools.erase.setAttribute('aria-label', t('지우기'));
   if (guideEl && cfg.guideText) guideEl.innerHTML = cfg.guideText();
 
-  if (!restore(store.get(saveKey, null))) { render(); showLevels(); }
+  // 처음 들어온 게임이면 규칙부터 한 번 보여준다.
+  render();
+  NemoRules.showOnce(cfg.kind, () => { if (!restore(store.get(saveKey, null))) { render(); showLevels(); } });
 };
 
 // 빈칸 중 채운 비율. 메인 화면 카드에서도 쓴다.

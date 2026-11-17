@@ -31,6 +31,7 @@
 </div>
 <script src="assets/i18n.js"></script>
 <script src="assets/common.js"></script>
+<script src="assets/rules.js"></script>
 <script src="assets/pair-engine.js"></script>
 <script>
 (() => {
@@ -142,7 +143,12 @@
         for (const i of p) ctx.fillRect((i % n) * cell + 1, Math.floor(i / n) * cell + 1, cell - 2, cell - 2);
         ctx.globalAlpha = 1;
         if (p.length > 1) {
-          ctx.strokeStyle = col; ctx.lineWidth = Math.max(4, cell * 0.2); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          if (armed && armed.key === p[0] + ':' + p[p.length - 1]) {
+            ctx.strokeStyle = c('--ink'); ctx.lineWidth = Math.max(4, cell * 0.2) + 6;
+            ctx.beginPath(); p.forEach((i, k) => { const o = ctr(i); k ? ctx.lineTo(o.x, o.y) : ctx.moveTo(o.x, o.y); }); ctx.stroke();
+          }
+          ctx.strokeStyle = col; ctx.lineWidth = Math.max(4, cell * 0.2);
           ctx.beginPath(); p.forEach((i, k) => { const o = ctr(i); k ? ctx.lineTo(o.x, o.y) : ctx.moveTo(o.x, o.y); }); ctx.stroke();
         }
       }
@@ -214,6 +220,20 @@
     return col >= 0 && row >= 0 && col < n && row < n ? row * n + col : null;
   };
   let pointer = null, tapPath = null, moved = false;
+  // 길은 빠르게 두 번 눌러야 지워진다(시카쿠와 같다). 첫 번째 탭은 테두리를 굵게 해서 '한 번 더 누르면 지워진다'를 보여준다.
+  const DOUBLE_TAP = 350;
+  let armed = null;
+  function tapOn(path) {
+    const key = path[0] + ':' + path[path.length - 1];
+    if (armed && armed.key === key && Date.now() - armed.at < DOUBLE_TAP) {
+      armed = null;
+      commit(G.paths.filter(p => p !== path));
+      return;
+    }
+    const mark = { key, at: Date.now() };
+    armed = mark;
+    setTimeout(() => { if (armed === mark) { armed = null; draw(); } }, DOUBLE_TAP);
+  }
   canvas.addEventListener('pointerdown', e => {
     if (G.status !== 'playing' || !geo || (e.pointerType === 'mouse' && e.button !== 0)) return;
     const i = cellAt(e);
@@ -271,9 +291,14 @@
       const d = drawing;
       drawing = null;
       // 숫자만 눌렀다 떼면 그 숫자의 길을 지운 것으로 친다
-      commit(d.cells.length > 1 ? d.others.concat([d.cells]) : d.others);
+      if (d.cells.length > 1) commit(d.others.concat([d.cells]));
+      else {
+        // 숫자를 끌지 않고 누르기만 했다: 그 숫자에 붙은 길이 있으면 길을 누른 것과 같다.
+        const own = G.paths.find(p => p.includes(d.cells[0]));
+        if (own) tapOn(own);
+      }
     } else if (tapPath != null && !moved) {
-      commit(G.paths.filter((_, k) => k !== tapPath));
+      tapOn(G.paths[tapPath]);
     }
     tapPath = null;
     draw();
@@ -338,13 +363,23 @@
     ...E.LEVELS.map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
     { sep: true },
     { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing', onClick: askRestart },
+    { sep: true },
+    { label: t('규칙 보기'), icon: 'help', onClick: showRules },
   ]);
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('pagehide', save);
 
   document.title = `${K.title} · ${t('네모 안에 네모')}`;
   $('clear').querySelector('span').textContent = t('전체 지우기');
-  if (!restore(store.get('pair.save', null))) { render(); showLevels(); }
+  // 규칙을 보는 동안은 시간을 멈춘다.
+  function showRules() {
+    const running = G.timer.running;
+    G.timer.pause();
+    NemoRules.show('pair', () => { if (running) G.timer.start(); });
+  }
+  // 처음 들어온 게임이면 규칙부터 한 번 보여준다.
+  render();
+  NemoRules.showOnce('pair', () => { if (!restore(store.get('pair.save', null))) { render(); showLevels(); } });
 })();
 </script>
 </body>

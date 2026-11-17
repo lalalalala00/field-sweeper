@@ -27,6 +27,7 @@
 </div>
 <script src="assets/i18n.js"></script>
 <script src="assets/common.js"></script>
+<script src="assets/rules.js"></script>
 <script src="assets/shikaku-engine.js"></script>
 <script>
 (() => {
@@ -421,13 +422,23 @@
       Nemo.confirmBox({ title: t('처음부터 다시 풀까요?'), message: t('같은 문제를 처음 상태로 되돌려요.'), ok: t('다시 풀기'),
         onOk: () => { start(G.puzzle); save(); }, onCancel: () => G.timer.start() });
     } },
+    { sep: true },
+    { label: t('규칙 보기'), icon: 'help', onClick: showRules },
   ]);
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('pagehide', save);
 
   document.title = `${K.title} · ${t('네모 안에 네모')}`;
   tools.clear.querySelector('span').textContent = t('전체 지우기');
-  if (!restore(store.get('shikaku.save', null))) { render(); showLevels(); }
+  // 규칙을 보는 동안은 시간을 멈춘다.
+  function showRules() {
+    const running = G.timer.running;
+    G.timer.pause();
+    NemoRules.show('shikaku', () => { if (running) G.timer.start(); });
+  }
+  // 처음 들어온 게임이면 규칙부터 한 번 보여준다.
+  render();
+  NemoRules.showOnce('shikaku', () => { if (!restore(store.get('shikaku.save', null))) { render(); showLevels(); } });
 })();
 </script>
 </body>

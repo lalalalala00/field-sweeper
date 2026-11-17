@@ -46,6 +46,7 @@
 </div>
 <script src="assets/i18n.js"></script>
 <script src="assets/common.js"></script>
+<script src="assets/rules.js"></script>
 <script src="assets/switch-engine.js"></script>
 <script>
 (() => {
@@ -285,6 +286,8 @@
     ...E.LEVELS.map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
     { sep: true },
     { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing' || !G.moves, onClick: askRestart },
+    { sep: true },
+    { label: t('규칙 보기'), icon: 'help', onClick: showRules },
   ]);
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('pagehide', save);
@@ -293,7 +296,15 @@
   $('restart').querySelector('span').textContent = t('처음부터 다시');
   $('guide').textContent = t('누른 칸의 가로줄과 세로줄이 모두 바뀌어요. 불을 모두 켜 주세요.');
   build();
-  if (!restore(store.get('switch.save', null))) { render(); showLevels(); }
+  // 규칙을 보는 동안은 시간을 멈춘다.
+  function showRules() {
+    const running = G.timer.running;
+    G.timer.pause();
+    NemoRules.show('switch', () => { if (running) G.timer.start(); });
+  }
+  // 처음 들어온 게임이면 규칙부터 한 번 보여준다.
+  render();
+  NemoRules.showOnce('switch', () => { if (!restore(store.get('switch.save', null))) { render(); showLevels(); } });
 })();
 </script>
 </body>

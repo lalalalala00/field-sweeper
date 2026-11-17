@@ -34,6 +34,7 @@ canvas.board { border-radius: 0; }
 </div>
 <script src="assets/i18n.js"></script>
 <script src="assets/common.js"></script>
+<script src="assets/rules.js"></script>
 <script src="assets/mirror-engine.js"></script>
 <script>
 (() => {
@@ -357,6 +358,8 @@ canvas.board { border-radius: 0; }
     ...E.LEVELS.map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
     { sep: true },
     { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing' || !G.moves, onClick: askRestart },
+    { sep: true },
+    { label: t('규칙 보기'), icon: 'help', onClick: showRules },
   ]);
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('pagehide', save);
@@ -364,7 +367,15 @@ canvas.board { border-radius: 0; }
   document.title = `${K.title} · ${t('네모 안에 네모')}`;
   $('restart').querySelector('span').textContent = t('처음부터 다시');
   $('guide').textContent = t('빛이 모든 별을 지나 목적지로 나가게 해 주세요. 거울을 누르면 방향이 바뀌어요.');
-  if (!restore(store.get('mirror.save', null))) { render(); showLevels(); }
+  // 규칙을 보는 동안은 시간을 멈춘다.
+  function showRules() {
+    const running = G.timer.running;
+    G.timer.pause();
+    NemoRules.show('mirror', () => { if (running) G.timer.start(); });
+  }
+  // 처음 들어온 게임이면 규칙부터 한 번 보여준다.
+  render();
+  NemoRules.showOnce('mirror', () => { if (!restore(store.get('mirror.save', null))) { render(); showLevels(); } });
 })();
 </script>
 </body>

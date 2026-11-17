@@ -30,6 +30,7 @@
     '길을 모두 지울까요?': ['Clear all paths?', 'すべての道を消しますか？', '要清除所有路径吗？'],
     '같은 숫자끼리 숫자만큼의 칸으로 이어 주세요. 길은 겹칠 수 없어요.': ['Link each pair of equal numbers with a path of exactly that many cells. Paths can’t cross.', '同じ数字どうしを、その数字と同じマス数の道でつないでください。道は重なれません。', '用与数字相同格数的路径连接相同的数字。路径不能交叉。'],
     '같은 숫자끼리 숫자만큼의 칸으로 이어 주세요. 모든 칸을 채워야 해요.': ['Link each pair of equal numbers with a path of exactly that many cells. Every cell must be used.', '同じ数字どうしを、その数字と同じマス数の道でつないでください。すべてのマスを使います。', '用与数字相同格数的路径连接相同的数字。必须用满所有格子。'],
+    '규칙 보기': ['Rules', 'ルールを見る', '查看规则'],
     '남은 {0}회': ['{0} moves left', '残り {0}手', '剩余 {0} 步'],
     '횟수 제한': ['Move limit', '手数制限', '步数限制'],
     '최소 {0}회 안에 풀지 못했어요': ['Not solved within {0} moves', '{0}手以内に解けませんでした', '未能在 {0} 步内完成'],
@@ -125,6 +126,7 @@
     restart: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>',
     stopwatch: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4M9 2h6"/>',
     external: '<path d="M7 17L17 7M9 7h8v8"/>',
+    help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.1-2.4 3.7"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>',
   };
   const icon = name => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`;
   const pauseFill = '<svg class="pause-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><rect x="8.2" y="7" width="2.6" height="10" rx=".8" fill="var(--ink)"/><rect x="13.2" y="7" width="2.6" height="10" rx=".8" fill="var(--ink)"/></svg>';
