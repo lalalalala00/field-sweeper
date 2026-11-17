@@ -12,6 +12,9 @@ struct HomeView: View {
     @AppStorage("lastGame") private var lastGame = ""
     @Environment(\.horizontalSizeClass) private var sizeClass
 
+    /// 양옆 여백. iPhone은 카드를 넓게 쓰도록 좁힌다(웹 index.html과 같다).
+    private var sidePadding: CGFloat { sizeClass == .compact ? 20 : 28 }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollViewReader { proxy in
@@ -22,7 +25,7 @@ struct HomeView: View {
                             .id(kind)
                     }
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, sidePadding)
                 // iPhone에서는 번호 줄 바로 아래에서 카드가 시작된다(웹과 같다).
                 .padding(.top, sizeClass == .compact ? 6 : 12)
                 .padding(.bottom, 24)
@@ -35,7 +38,7 @@ struct HomeView: View {
                 header { kind in
                     withAnimation(.easeOut(duration: 0.3)) { proxy.scrollTo(kind, anchor: .top) }
                 }
-                    .padding(.horizontal, 28)
+                    .padding(.horizontal, sidePadding)
                     .padding(.top, 28)
                     .frame(maxWidth: 560)
                     .frame(maxWidth: .infinity)
@@ -48,7 +51,7 @@ struct HomeView: View {
                     stamp
                     footer
                 }
-                .padding(.horizontal, 28)
+                .padding(.horizontal, sidePadding)
                 .padding(.top, 12)
                 .padding(.bottom, 4)
                 .frame(maxWidth: 560)
