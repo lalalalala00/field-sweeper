@@ -4,6 +4,11 @@
   --cell: #fbfaf5; --thin: #d9d5c3; --user: #3d67b0; --wrong: #c54a38;
   --fill-minesweeper: #a0b894; --fill-sudoku: #e6dfb0; --fill-shikaku: #e8c3a8; --fill-futoshiki: #a9bbd3;
   --text-minesweeper: #ffffff; --text-sudoku: var(--ink); --text-shikaku: var(--ink); --text-futoshiki: #ffffff;
+  /* 새 게임 3종 카드 색 (앱 Theme.swift의 NewGameCards) */
+  --fill-mirror: #c3a8c6; --fill-pair: #dfb3b7; --fill-switch: #bfd8cc;
+  --text-mirror: #ffffff; --text-pair: var(--ink); --text-switch: var(--ink);
+  /* 스위치네모 불: 꺼진 칸은 어둡고 속이 빈 원, 켜진 칸은 밝고 빛나는 원(색과 밝기, 모양이 모두 다르다) */
+  --sw-off: #cdc8b8; --sw-ring: #8f8a7a; --sw-on: #f6dd88; --sw-core: #fffaf0; --sw-glow: rgba(255, 205, 80, .85);
   --scrim: rgba(0, 0, 0, .35);
   /* 게임별 판 색: 스도쿠(sd), 후토시키(ft), 시카쿠 영역(sk1…6) */
   --sd-related: #f3efd8; --sd-same: #e6dfb0; --sd-selected: #d6cb85;
@@ -19,6 +24,8 @@
   --cell: #1b1f1a; --thin: #343b32; --user: #93b2ff; --wrong: #ff8a78;
   --fill-minesweeper: #3e4d38; --fill-sudoku: #3b3824; --fill-shikaku: #45352a; --fill-futoshiki: #2f3a4a;
   --text-minesweeper: #f2f6ee; --text-futoshiki: #f2f6ee;
+  --fill-mirror: #483c49; --fill-pair: #55383a; --fill-switch: #2c3d35; --text-mirror: #f2f6ee;
+  --sw-off: #232821; --sw-ring: #56604f; --sw-on: #d2ae52; --sw-core: #fff3cf; --sw-glow: rgba(255, 205, 100, .5);
   --sd-related: #262a20; --sd-same: #48432a; --sd-selected: #6b6238;
   --ft-related: #232a33; --ft-same: #334054; --ft-guide: #a9bbd3; --ft-line: #343b32;
   --sk-thin: #343b32; --sk1: #2e3a2c; --sk2: #2c3442; --sk3: #42342a; --sk4: #3e3824; --sk5: #363244; --sk6: #2b3a31;
@@ -29,6 +36,8 @@
   --cell: #1b1f1a; --thin: #343b32; --user: #93b2ff; --wrong: #ff8a78;
   --fill-minesweeper: #3e4d38; --fill-sudoku: #3b3824; --fill-shikaku: #45352a; --fill-futoshiki: #2f3a4a;
   --text-minesweeper: #f2f6ee; --text-futoshiki: #f2f6ee;
+  --fill-mirror: #483c49; --fill-pair: #55383a; --fill-switch: #2c3d35; --text-mirror: #f2f6ee;
+  --sw-off: #232821; --sw-ring: #56604f; --sw-on: #d2ae52; --sw-core: #fff3cf; --sw-glow: rgba(255, 205, 100, .5);
   --sd-related: #262a20; --sd-same: #48432a; --sd-selected: #6b6238;
   --ft-related: #232a33; --ft-same: #334054; --ft-guide: #a9bbd3; --ft-line: #343b32;
   --sk-thin: #343b32; --sk1: #2e3a2c; --sk2: #2c3442; --sk3: #42342a; --sk4: #3e3824; --sk5: #363244; --sk6: #2b3a31;
@@ -60,7 +69,13 @@ svg.i { width: 1em; height: 1em; display: block; fill: none; stroke: currentColo
 .spacer { flex: 1; min-width: 8px; }
 .timer { display: flex; align-items: center; gap: 4px; font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .timer svg { width: 14px; height: 14px; color: var(--ink-soft); }
-@media (max-width: 430px) { .timer svg { display: none; } }
+@media (max-width: 430px) {
+  /* 앱처럼 iPhone 폭에서는 시계 아이콘을 빼고 버튼과 이름을 조금 줄여, 긴 이름(Switch Squares)도 잘리지 않게 한다 */
+  .timer svg { display: none; }
+  .topbar { gap: 6px; }
+  .topbar .ib { width: 36px; }
+  .title b { font-size: 14px; }
+}
 
 .more { position: relative; flex: none; }
 .menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 15; min-width: 220px; max-height: 70dvh; overflow-y: auto; padding: 6px;

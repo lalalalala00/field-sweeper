@@ -57,6 +57,7 @@ enum Paper {
 
 /// 보조 팔레트. 게임 카드 색 후보에서 남은 색들로, 시카쿠 영역 색이나 상태 표시처럼
 /// 게임 안에서 색이 더 필요할 때 쓴다. 카드의 대표 색(GameKind.fill)으로는 쓰지 않는다.
+/// 단, 민트는 스위치네모 카드 색으로 쓴다(NewGameCards).
 enum SubPalette {
     static let rose = UIColor.dynamic(0xd4a99e, 0x4a3330)
     static let apricot = UIColor.dynamic(0xf1dccb, 0x3d3028)
@@ -64,6 +65,20 @@ enum SubPalette {
     static let mint = UIColor.dynamic(0xbfd8cc, 0x2c3d35)
 
     static let all: [UIColor] = [rose, apricot, lilac, mint]
+}
+
+/// 새로 만들 게임 3종의 카드 색(시안 '새 게임 카드 색' 조합 B).
+/// 각 게임을 GameKind에 추가할 때 fill과 text로 옮기고, 여기서는 지운다.
+enum NewGameCards {
+    /// 거울네모: 자두. 글자는 흰색(지뢰찾기·후토시키 카드와 같은 쪽).
+    static let mirror = UIColor.dynamic(0xc3a8c6, 0x483c49)
+    static let mirrorText = UIColor.dynamic(0xffffff, 0xf2f6ee)
+    /// 짝네모: 점토 로즈. 글자는 Deep Green.
+    static let pair = UIColor.dynamic(0xdfb3b7, 0x55383a)
+    static let pairText = Paper.ink
+    /// 스위치네모: 민트(보조 팔레트). 글자는 Deep Green.
+    static let switches = SubPalette.mint
+    static let switchesText = Paper.ink
 }
 
 extension Color {

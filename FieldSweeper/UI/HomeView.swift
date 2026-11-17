@@ -12,20 +12,27 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    header
-                    VStack(spacing: 12) {
-                        ForEach(GameKind.allCases) { kind in
-                            GameCard(kind: kind, summary: .load(kind)) { path.append(kind) }
-                        }
+                VStack(spacing: 12) {
+                    ForEach(GameKind.allCases) { kind in
+                        GameCard(kind: kind, summary: .load(kind)) { path.append(kind) }
                     }
                 }
                 .padding(.horizontal, 28)
-                .padding(.top, 28)
+                .padding(.top, 24)
                 .padding(.bottom, 24)
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
                 .id("\(language)-\(refresh)")
+            }
+            // 이름·소개·선은 위에 고정하고, 게임 카드만 스크롤된다.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                header
+                    .padding(.horizontal, 28)
+                    .padding(.top, 28)
+                    .frame(maxWidth: 560)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(Paper.bg))
+                    .id(language)
             }
             // 번호·날짜와 기록·설정은 화면 맨 아래에 고정한다. 게임이 늘어 카드가 스크롤돼도 항상 보인다.
             .safeAreaInset(edge: .bottom, spacing: 0) {

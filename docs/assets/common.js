@@ -10,6 +10,19 @@
   const EXTRA = {
     '네모 안에 네모': ['Nemo in Nemo', 'ネモ・イン・ネモ', '方中方'],
     '웹': ['Web', 'Web', '网页版'],
+    '{0}행 {1}열': ['Row {0}, column {1}', '{0}行 {1}列', '第{0}行 第{1}列'],
+    '켜진 불 {0}/{1}': ['Lights on {0}/{1}', '点灯 {0}/{1}', '亮灯 {0}/{1}'],
+    '조작 {0}회': ['{0} moves', '{0}手', '{0} 步'],
+    '최소 {0}회': ['Fewest {0}', '最少 {0}手', '最少 {0} 步'],
+    '최소 조작으로 풀었어요': ['Solved in the fewest moves', '最少手数でクリア', '以最少步数完成'],
+    '조작 {0}회 · 최소 {1}회': ['{0} moves · fewest {1}', '{0}手 · 最少 {1}手', '{0} 步 · 最少 {1} 步'],
+    '{0}×{1} · 최소 {2}~{3}회': ['{0}×{1} · {2}–{3} moves', '{0}×{1} · 最少 {2}〜{3}手', '{0}×{1} · 最少 {2}–{3} 步'],
+    '남은 {0}회': ['{0} moves left', '残り {0}手', '剩余 {0} 步'],
+    '횟수 제한': ['Move limit', '手数制限', '步数限制'],
+    '최소 {0}회 안에 풀지 못했어요': ['Not solved within {0} moves', '{0}手以内に解けませんでした', '未能在 {0} 步内完成'],
+    '지옥에서는 최소 횟수 안에 모든 불을 켜야 해요.': ['In Hell, every light must be on within the fewest moves.', '地獄では最少手数以内にすべての明かりをつける必要があります。', '地狱难度必须在最少步数内点亮所有灯。'],
+    '최소 횟수 안에 풀어야 해요. 되돌리기는 쓸 수 없어요.': ['Solve it within the fewest moves. Undo is off.', '最少手数以内に解いてください。元に戻すは使えません。', '必须在最少步数内完成，不能撤销。'],
+    '누른 칸의 가로줄과 세로줄이 모두 바뀌어요. 불을 모두 켜 주세요.': ['Tapping a square flips its whole row and column. Turn every light on.', 'マスを押すと、その横の列と縦の列がすべて切り替わります。すべての明かりをつけてください。', '点击方格会切换整行和整列。把所有灯都点亮。'],
   };
   const TABLE = Object.assign({}, window.NEMO_I18N || {}, EXTRA);
   const LANGS = ['ko', 'ja', 'zh', 'en'];
@@ -41,6 +54,10 @@
     { id: 'sudoku', title: 'Sudoku', href: 'sudoku.html' },
     { id: 'shikaku', title: 'Shikaku', href: 'shikaku.html' },
     { id: 'futoshiki', title: 'Futoshiki', href: 'futoshiki.html' },
+    // 아직 만들지 않은 게임은 메인 화면에 '준비 중'으로 보인다.
+    { id: 'mirror', title: 'Mirror Squares', href: null },
+    { id: 'pair', title: 'Pair Paths', href: null },
+    { id: 'switch', title: 'Switch Squares', href: 'switch.html' },
   ].map((k, i) => ({ ...k, number: String(i + 1).padStart(2, '0') }));
   const kind = id => KINDS.find(k => k.id === id);
 
@@ -68,6 +85,15 @@
       body = `<path d="${d}" stroke="currentColor" stroke-width="${thin}"/>`;
     } else if (id === 'shikaku') {
       body = `<path d="M${p(0.56, 0.12)}L${p(0.56, 0.88)}M${p(0.12, 0.42)}L${p(0.56, 0.42)}M${p(0.56, 0.66)}L${p(0.88, 0.66)}" stroke="currentColor" stroke-width="${thin}" stroke-linecap="round"/>`;
+    } else if (id === 'mirror') {
+      // 거울 한 장과 꺾이는 빛
+      body = `<path d="M7 17 17 7" stroke="currentColor" stroke-width="${line}" stroke-linecap="round"/><path d="M4.5 12H11V5.5" fill="none" stroke="currentColor" stroke-width="${thin}" stroke-linecap="round" stroke-dasharray="1.6 1.8"/>`;
+    } else if (id === 'pair') {
+      // 두 점을 잇는 길
+      body = `<path d="M7 7v10h10" fill="none" stroke="currentColor" stroke-width="${thin * 1.15}" stroke-linejoin="round"/><circle cx="7" cy="7" r="2.1" fill="currentColor"/><circle cx="17" cy="17" r="2.1" fill="currentColor"/>`;
+    } else if (id === 'switch') {
+      // 누른 칸과 함께 바뀌는 가로줄·세로줄
+      body = `<path d="M12 ${line}V${s - line}M${line} 12H${s - line}" stroke="currentColor" stroke-width="${thin}"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/>`;
     } else {
       body = `<path d="M${p(0.64, 0.25)}L${p(0.36, 0.43)}L${p(0.64, 0.61)}M${p(0.36, 0.74)}L${p(0.64, 0.74)}" fill="none" stroke="currentColor" stroke-width="${line}" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
@@ -162,9 +188,9 @@
     el.querySelector('.btn').onclick = () => { close(); onResume(); };
   }
 
-  function result({ title, subtitle, time, isNewBest, onClose, onOther, onAgain }) {
+  function result({ title, subtitle, note, time, isNewBest, onClose, onOther, onAgain }) {
     const el = overlay(`<div class="card center" role="dialog" aria-modal="true" aria-labelledby="rsTitle">
-      <h2 id="rsTitle">${esc(title)}</h2><p>${esc(subtitle)}</p>
+      <h2 id="rsTitle">${esc(title)}</h2><p>${esc(subtitle)}</p>${note ? `<p>${esc(note)}</p>` : ''}
       ${time != null ? `<div class="big">${time}</div>${isNewBest ? `<span class="badge">${t('최고 기록')}</span>` : ''}` : ''}
       <div class="actions"><button class="btn" data-other>${t('다른 난이도')}</button><button class="btn primary" data-again data-focus>${t('새 퍼즐')}</button></div></div>`,
     { onBackdrop: () => { close(); onClose(); } });
