@@ -7,9 +7,9 @@ import Foundation
 enum UndoLimit {
     static func count(forLevel name: String) -> Int? {
         switch name {
-        case "중급": 5
-        case "고급": 3
-        case "전문가": 1
+        case "중급": 10
+        case "고급": 5
+        case "전문가": 3
         case "지옥": 0
         default: nil
         }

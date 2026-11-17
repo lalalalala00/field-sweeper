@@ -138,7 +138,7 @@
 
   // 난이도별 되돌리기 횟수: 초급·커스텀 무제한, 오를수록 줄고 지옥은 없다(앱 UndoLimit.swift와 같은 표).
   // 숫자 지우기·영역 지우기·다시 누르기 같은 직접 고치기는 횟수와 상관없다.
-  const UNDO = { '중급': 5, '고급': 3, '전문가': 1, '지옥': 0 };
+  const UNDO = { '중급': 10, '고급': 5, '전문가': 3, '지옥': 0 };
   const undoLimit = levelName => (levelName in UNDO ? UNDO[levelName] : Infinity);
   const undoLabel = left => (left === Infinity ? t('되돌리기') : t('되돌리기 {0}', left));
 
