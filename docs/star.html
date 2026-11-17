@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="가로줄·세로줄·구역마다 별을 놓되 별끼리 닿지 않게 하는 별네모.">
+<meta name="theme-color" content="#f6f4ec">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="assets/paper.css">
+<style>
+:root { --accent: var(--fill-star); }
+.status { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; font-size: 14px; font-variant-numeric: tabular-nums; margin: 0; }
+.status span + span::before { content: "·"; margin-right: 14px; color: var(--ink-soft); }
+</style>
+<title>Star Squares</title>
+</head>
+<body>
+<div class="puzzle" id="app">
+  <div class="stage">
+    <div class="board-wrap empty" id="wrap"><canvas class="board" id="board" role="img"></canvas></div>
+    <p class="status" id="status" aria-live="polite"></p>
+    <p class="guide" id="guide"></p>
+  </div>
+  <div class="controls">
+    <div class="tools">
+      <button class="tool" id="undo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span></span></button>
+      <button class="tool" id="clear"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg><span></span></button>
+    </div>
+  </div>
+</div>
+<script src="assets/i18n.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/rules.js"></script>
+<script src="assets/star-engine.js"></script>
+<script>
+(() => {
+  // 앱에 화면은 아직 없다. 규칙은 FieldSweeper/Model/StarEngine.swift와 같다.
+  const E = StarEngine, { t, store, stats, clock } = Nemo;
+  const K = Nemo.kind('star');
+  const $ = id => document.getElementById(id);
+  const app = $('app'), wrap = $('wrap'), canvas = $('board');
+  const bar = Nemo.topBar('star');
+  app.prepend(bar);
+  const q = sel => bar.querySelector(sel);
+  let showTimer = store.get('showTimer', true);
+  const opts = { showMistakes: store.get('star.showMistakes', true), tintRegions: store.get('star.tintRegions', true) };
+
+  // marks: 칸마다 0 빈칸, 1 점(별 없음 표시), 2 별. history: 바꾸기 전 marks를 통째로 담는다.
+  const EMPTY = 0, DOT = 1, STAR = 2;
+  const G = { puzzle: null, marks: [], history: [], status: 'empty', counted: false, undosUsed: 0, timer: new Nemo.Timer(), isNewBest: false };
+  const level = () => E.LEVELS[(G.puzzle ? G.puzzle.level : 1) - 1];
+  const size = () => (G.puzzle ? G.puzzle.size : 5);
+  // 영어는 별 1개와 2개의 문장 모양이 달라서 번역 문장을 개수별로 따로 둔다(common.js)
+  const subtitle = () => (G.puzzle ? t(G.puzzle.k === 1 ? '{0} · {1}×{1} · 별 1개' : '{0} · {1}×{1} · 별 2개', t(level().name), size()) : '');
+  const undosLeft = () => (G.puzzle ? Math.max(0, Nemo.undoLimit(level().name) - G.undosUsed) : Infinity);
+  const starsOf = marks => marks.map((m, i) => (m === STAR ? i : -1)).filter(i => i >= 0);
+
+  // ── 시작·저장 ──
+  function start(puzzle, saved) {
+    G.puzzle = puzzle;
+    G.marks = saved ? saved.marks.slice() : new Array(puzzle.size * puzzle.size).fill(EMPTY);
+    G.history = [];
+    G.counted = saved ? !!saved.counted : false;
+    G.undosUsed = saved ? saved.undosUsed || 0 : 0;
+    G.isNewBest = false;
+    G.timer = new Nemo.Timer(saved ? saved.elapsed : 0);
+    G.timer.start();
+    G.status = 'playing';
+    render();
+  }
+  function restore(s) {
+    const p = s && s.puzzle;
+    if (!p || !(p.size >= 4) || !(p.k >= 1) || !Array.isArray(p.regions) || p.regions.length !== p.size * p.size || !E.LEVELS[p.level - 1]
+      || !Array.isArray(s.marks) || s.marks.length !== p.size * p.size || !s.marks.every(m => m === EMPTY || m === DOT || m === STAR)) return false;
+    start(p, s);
+    return true;
+  }
+  function save() {
+    if (G.status !== 'playing') return;
+    store.set('star.save', { puzzle: G.puzzle, marks: G.marks, undosUsed: G.undosUsed, placed: starsOf(G.marks).length,
+      total: G.puzzle.size * G.puzzle.k, elapsed: G.timer.seconds, counted: G.counted, savedAt: Date.now() });
+  }
+
+  // ── 바꾸기 ──
+  function commit(next) {
+    if (next.every((m, i) => m === G.marks[i])) return;
+    G.history.push(G.marks);
+    G.marks = next;
+    if (!G.counted) { G.counted = true; stats.recordStart('star'); }
+    if (E.check(G.puzzle, starsOf(G.marks)).solved) win(); else save();
+    render();
+  }
+  function undo() {
+    if (G.status !== 'playing' || !G.history.length || !undosLeft()) return;
+    G.marks = G.history.pop();
+    G.undosUsed++;
+    render(); save();
+  }
+  function win() {
+    G.timer.pause();
+    G.status = 'won';
+    store.set('star.save', null);
+    G.isNewBest = stats.recordWin('star', level().name, Math.round(G.timer.seconds));
+    setTimeout(() => { if (G.status === 'won') showResult(); }, 450);
+  }
+
+  // ── 그리기 ──
+  let geo = null, preview = null;
+  // 구역 바탕색: 짝네모 길 색을 옅게 깐다(구역마다 다른 색)
+  const tintOf = g => Nemo.cssColor('--pp' + ((g * 3) % 10 + 1));
+  function starPath(ctx, cx, cy, r) {
+    ctx.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r;
+      const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+  }
+  function draw() {
+    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight, 560));
+    if (side <= 0) return;
+    const n = size(), cell = side / n;
+    geo = { side, n, cell };
+    const ctx = Nemo.fitCanvas(canvas, side, side), c = Nemo.cssColor;
+    ctx.clearRect(0, 0, side, side);
+    ctx.save();
+    Nemo.roundRect(ctx, 0, 0, side, side, 6);
+    ctx.clip();
+    ctx.fillStyle = c('--cell'); ctx.fillRect(0, 0, side, side);
+    if (G.puzzle) {
+      const p = G.puzzle, reg = p.regions, marks = preview || G.marks;
+      if (opts.tintRegions) {
+        ctx.globalAlpha = 0.16;
+        for (let i = 0; i < n * n; i++) { ctx.fillStyle = tintOf(reg[i]); ctx.fillRect((i % n) * cell, Math.floor(i / n) * cell, cell + 0.5, cell + 0.5); }
+        ctx.globalAlpha = 1;
+      }
+      // 가는 칸 선과 굵은 구역 경계
+      ctx.beginPath();
+      for (let k = 1; k < n; k++) { const x = Math.round(k * cell) + 0.5; ctx.moveTo(x, 0); ctx.lineTo(x, side); ctx.moveTo(0, x); ctx.lineTo(side, x); }
+      ctx.strokeStyle = c('--thin'); ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < n * n; i++) {
+        const r = Math.floor(i / n), col = i % n;
+        if (col < n - 1 && reg[i] !== reg[i + 1]) { const x = Math.round((col + 1) * cell); ctx.moveTo(x, r * cell); ctx.lineTo(x, (r + 1) * cell); }
+        if (r < n - 1 && reg[i] !== reg[i + n]) { const y = Math.round((r + 1) * cell); ctx.moveTo(col * cell, y); ctx.lineTo((col + 1) * cell, y); }
+      }
+      ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke();
+      // 점과 별
+      const bad = new Set(opts.showMistakes ? E.check(p, starsOf(marks)).bad : []);
+      for (let i = 0; i < n * n; i++) {
+        const cx = (i % n + 0.5) * cell, cy = (Math.floor(i / n) + 0.5) * cell;
+        if (marks[i] === DOT) {
+          ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, cell * 0.07), 0, Math.PI * 2);
+          ctx.fillStyle = c('--ink-soft'); ctx.fill();
+        } else if (marks[i] === STAR) {
+          starPath(ctx, cx, cy + cell * 0.02, cell * 0.33);
+          ctx.fillStyle = c(bad.has(i) ? '--wrong' : '--ink'); ctx.fill();
+        }
+      }
+    }
+    ctx.restore();
+    Nemo.roundRect(ctx, 1, 1, side - 2, side - 2, 6);
+    ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2; ctx.stroke();
+    if (G.puzzle) canvas.setAttribute('aria-label', `${K.title} · ${t('별 {0}/{1}', starsOf(G.marks).length, G.puzzle.size * G.puzzle.k)}`);
+  }
+
+  function render() {
+    const playing = G.status === 'playing';
+    q('[data-sub]').textContent = subtitle();
+    q('[data-pause]').disabled = !playing;
+    wrap.classList.toggle('empty', G.status === 'empty');
+    if (G.puzzle) {
+      $('status').innerHTML = `<span>${t('별 {0}/{1}', starsOf(G.marks).length, G.puzzle.size * G.puzzle.k)}</span>`;
+      $('guide').textContent = t(G.puzzle.k === 1 ? '가로줄·세로줄·구역마다 별 1개씩. 별끼리는 대각선으로도 닿을 수 없어요.' : '가로줄·세로줄·구역마다 별 2개씩. 별끼리는 대각선으로도 닿을 수 없어요.');
+    }
+    $('undo').disabled = !playing || !G.history.length || !undosLeft();
+    $('undo').querySelector('span').textContent = Nemo.undoLabel(undosLeft());
+    $('clear').disabled = !playing || G.marks.every(m => m === EMPTY);
+    tick();
+    draw();
+  }
+  function tick() {
+    const show = showTimer && G.status === 'playing';
+    q('[data-timer]').hidden = !show;
+    if (show) q('[data-time]').textContent = clock(Math.floor(G.timer.seconds));
+  }
+  setInterval(tick, 250);
+  new ResizeObserver(draw).observe(wrap);
+  Nemo.onTheme(draw);
+
+  // ── 누르기와 끌기 ──
+  // 누르면 빈칸 → 점 → 별 → 빈칸. 빈칸에서 끌면 지나는 빈칸에 점을 찍고, 점에서 끌면 지나는 점을 지운다(별은 그대로).
+  const cellAt = e => {
+    const r = canvas.getBoundingClientRect(), n = geo.n;
+    const col = Math.floor((e.clientX - r.left) / geo.cell), row = Math.floor((e.clientY - r.top) / geo.cell);
+    return col >= 0 && row >= 0 && col < n && row < n ? row * n + col : null;
+  };
+  let pointer = null, first = null, paint = null;
+  canvas.addEventListener('pointerdown', e => {
+    if (G.status !== 'playing' || !geo || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const i = cellAt(e);
+    if (i == null) return;
+    canvas.setPointerCapture(e.pointerId);
+    pointer = e.pointerId; first = i; paint = null; preview = null;
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (e.pointerId !== pointer) return;
+    const i = cellAt(e);
+    if (i == null) return;
+    if (paint == null) {
+      if (i === first || G.marks[first] === STAR) return;
+      paint = { to: G.marks[first] === EMPTY ? DOT : EMPTY, from: G.marks[first] };
+      preview = G.marks.slice();
+      preview[first] = paint.to;
+    }
+    if (preview[i] === paint.from) { preview[i] = paint.to; draw(); }
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (e.pointerId !== pointer) return;
+    pointer = null;
+    if (paint) { const next = preview; preview = null; paint = null; commit(next); return; }
+    const next = G.marks.slice();
+    next[first] = (next[first] + 1) % 3;
+    commit(next);
+  });
+  canvas.addEventListener('pointercancel', e => { if (e.pointerId === pointer) { pointer = null; paint = null; preview = null; draw(); } });
+  document.addEventListener('keydown', e => {
+    if (G.status === 'playing' && !Nemo.isOpen() && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+  });
+
+  // ── 겹쳐 보이는 창 ──
+  const time = () => (showTimer ? clock(Math.round(G.timer.seconds)) : null);
+  function showLevels() {
+    G.timer.pause();
+    const best = stats.load('star').bestByDifficulty;
+    Nemo.levelPicker({
+      items: E.LEVELS.map(l => ({ id: l.id, name: t(l.name), best: best[l.name], detail: t(l.k === 1 ? '{0}×{0} · 별 1개' : '{0}×{0} · 별 2개', l.size) })),
+      current: store.get('star.lastLevel', 1), canCancel: G.status !== 'empty',
+      onPick: newPuzzle,
+      onCancel: () => { if (G.status === 'empty') location.href = './'; else G.timer.start(); },
+    });
+  }
+  function newPuzzle(id) {
+    store.set('star.lastLevel', id);
+    G.timer.pause();
+    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(E.LEVELS[id - 1].name)));
+    setTimeout(() => {
+      const puzzle = E.generate(id);
+      store.set('star.save', null);
+      Nemo.close();
+      start(puzzle);
+      save();
+    }, 40);
+  }
+  function pause() {
+    if (G.status !== 'playing' || Nemo.isOpen()) return;
+    G.timer.pause();
+    save();
+    Nemo.pauseCover({ subtitle: subtitle(), time: time(), onResume: () => G.timer.start() });
+  }
+  function askRestart() {
+    G.timer.pause();
+    Nemo.confirmBox({ title: t('처음부터 다시 풀까요?'), message: t('같은 문제를 처음 상태로 되돌려요.'), ok: t('다시 풀기'),
+      onOk: () => { start(G.puzzle); save(); }, onCancel: () => G.timer.start() });
+  }
+  function showResult() {
+    Nemo.result({ title: t('{0} 완성', K.title), subtitle: subtitle(), time: time(), isNewBest: G.isNewBest,
+      onClose: () => {}, onOther: showLevels, onAgain: () => newPuzzle(G.puzzle.level) });
+  }
+
+  $('undo').onclick = undo;
+  $('clear').onclick = () => {
+    G.timer.pause();
+    Nemo.confirmBox({ title: t('별과 점을 모두 지울까요?'), message: t('되돌리기로 다시 살릴 수 있어요.'), ok: t('모두 지우기'),
+      onOk: () => { commit(G.marks.map(() => EMPTY)); G.timer.start(); }, onCancel: () => G.timer.start() });
+  };
+  q('[data-pause]').onclick = pause;
+  q('[data-back]').addEventListener('click', save);
+  Nemo.newButton(bar, { level: () => (G.puzzle ? G.puzzle.level : null), touched: () => G.status === 'playing' && G.counted,
+    start: newPuzzle, pick: showLevels, timer: () => G.timer });
+  Nemo.menu(q('[data-more]'), q('[data-menu]'), () => [
+    { section: t('새 퍼즐') },
+    ...E.LEVELS.map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
+    { sep: true },
+    { label: t('처음부터 다시'), icon: 'rewind', disabled: G.status !== 'playing', onClick: askRestart },
+    { sep: true },
+    { section: t('표시') },
+    { label: t('규칙에 어긋난 별 표시'), checked: opts.showMistakes, onChange: v => { opts.showMistakes = v; store.set('star.showMistakes', v); draw(); } },
+    { label: t('구역 색 칠하기'), checked: opts.tintRegions, onChange: v => { opts.tintRegions = v; store.set('star.tintRegions', v); draw(); } },
+    { sep: true },
+    { label: t('규칙 보기'), icon: 'help', onClick: showRules },
+  ]);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  window.addEventListener('pagehide', save);
+
+  document.title = `${K.title} · ${t('네모 안에 네모')}`;
+  $('clear').querySelector('span').textContent = t('전체 지우기');
+  function showRules() {
+    const running = G.timer.running;
+    G.timer.pause();
+    NemoRules.show('star', () => { if (running) G.timer.start(); });
+  }
+  render();
+  NemoRules.showOnce('star', () => { if (!restore(store.get('star.save', null))) { render(); showLevels(); } });
+})();
+</script>
+</body>
+</html>

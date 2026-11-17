@@ -67,6 +67,18 @@
         '같은 가로줄 또는 세로줄에 숫자가 중복되면 빨간색으로, 다 채운 묶음의 계산이 틀리면 묶음 이름표가 빨간색으로 표시돼요.',
         UNDO],
     },
+    star: {
+      title: 'Star Squares',
+      line: '가로줄·세로줄·구역마다 정해진 수의 별을 놓되, 별끼리 닿지 않게 하는 논리 퍼즐',
+      rules: ['판은 굵은 선으로 여러 구역으로 나뉘어 있어요.',
+        '가로줄, 세로줄, 구역마다 정해진 수만큼 별을 놓아야 해요. 초급부터 고급까지는 1개, 전문가는 2개예요.',
+        '별끼리는 상하좌우는 물론 대각선으로도 닿을 수 없어요.',
+        '모든 문제의 정답은 하나뿐이에요.'],
+      howto: ['칸을 누를 때마다 빈칸, 점, 별 순서로 바뀌어요. 점은 별이 없는 칸을 표시해 두는 용도예요.',
+        '빈칸에서 끌면 지나가는 칸에 점이 한꺼번에 찍히고, 점에서 끌면 점이 지워져요.',
+        '서로 닿아 있거나 한 줄·구역에 너무 많은 별은 빨간색으로 표시돼요.',
+        UNDO],
+    },
     mirror: {
       title: 'Mirror Squares',
       line: '거울의 방향을 바꿔 빛이 모든 별을 지나 목적지에 도달하도록 만드는 논리 퍼즐',
@@ -138,6 +150,14 @@
     '가로줄과 세로줄마다 1부터 판 크기까지의 숫자가 한 번씩 들어가야 해요.': ['Each row and column must hold every number from 1 to the board size exactly once.', '横の列と縦の列には、1から盤の大きさまでの数字が一つずつ入ります。', '每行每列必须各出现一次 1 到棋盘大小的数字。'],
     '칸 사이에 표시된 부등호를 지켜야 해요. 부등호의 뾰족한 쪽이 더 작은 숫자를 가리켜요.': ['Follow the signs shown between squares. The pointed side points to the smaller number.', 'マスの間の不等号を守ってください。不等号のとがった側が小さい数字を指します。', '必须遵守格子间的不等号。尖的一侧指向较小的数字。'],
     '부등호 조건을 위반하거나 같은 가로줄 또는 세로줄에 숫자가 중복되면 빨간색으로 표시돼요.': ['A broken sign or a number repeated in a row or column turns red.', '不等号に反したり、同じ横の列や縦の列で数字が重なったりすると赤く表示されます。', '违反不等号或同一行、同一列数字重复时会显示为红色。'],
+    // 별네모
+    '가로줄·세로줄·구역마다 정해진 수의 별을 놓되, 별끼리 닿지 않게 하는 논리 퍼즐': ['A logic puzzle where you place a set number of stars in every row, column and region without any stars touching', '横・縦の列と区域ごとに決まった数の星を置き、星どうしが接しないようにする論理パズル', '在每行、每列和每个区域放置规定数量的星星，且星星之间互不相邻的逻辑谜题'],
+    '판은 굵은 선으로 여러 구역으로 나뉘어 있어요.': ['The board is divided into regions by bold lines.', '盤面は太線でいくつかの区域に分かれています。', '棋盘由粗线分成多个区域。'],
+    '가로줄, 세로줄, 구역마다 정해진 수만큼 별을 놓아야 해요. 초급부터 고급까지는 1개, 전문가는 2개예요.': ['Place the set number of stars in every row, column and region: 1 from Beginner to Advanced, 2 on Expert.', '横の列、縦の列、区域ごとに決まった数の星を置きます。初級から上級までは1個、エキスパートは2個です。', '每行、每列和每个区域都要放置规定数量的星星：初级到高级为1颗，专家为2颗。'],
+    '별끼리는 상하좌우는 물론 대각선으로도 닿을 수 없어요.': ['Stars can’t touch each other, not even diagonally.', '星どうしは上下左右だけでなく、斜めでも接することはできません。', '星星之间上下左右和斜向都不能相邻。'],
+    '칸을 누를 때마다 빈칸, 점, 별 순서로 바뀌어요. 점은 별이 없는 칸을 표시해 두는 용도예요.': ['Each tap cycles a square through empty, dot and star. Dots mark squares you know have no star.', 'マスを押すたびに、空き、点、星の順に変わります。点は星がないマスの目印です。', '每点一下格子，会按空白、点、星星的顺序切换。点用来标记没有星星的格子。'],
+    '빈칸에서 끌면 지나가는 칸에 점이 한꺼번에 찍히고, 점에서 끌면 점이 지워져요.': ['Drag from an empty square to dot every square you pass; drag from a dot to clear dots.', '空きマスからドラッグすると通ったマスにまとめて点が付き、点からドラッグすると点が消えます。', '从空白格拖动会在经过的格子上一起打点；从点开始拖动则会清除点。'],
+    '서로 닿아 있거나 한 줄·구역에 너무 많은 별은 빨간색으로 표시돼요.': ['Stars that touch, or too many stars in a row, column or region, turn red.', '接している星や、1つの列・区域に多すぎる星は赤く表示されます。', '相邻的星星，或某行、某列、某区域中过多的星星会显示为红色。'],
     // 셈네모
     '칸 묶음마다 적힌 계산이 맞도록 가로줄과 세로줄에 숫자를 채우는 논리 퍼즐': ['A logic puzzle where you fill each row and column with numbers so every cage’s sum works out', 'ブロックごとに書かれた計算が合うように、横と縦の列に数字を入れる論理パズル', '在横行与竖列中填入数字，使每个区块标注的计算成立的逻辑谜题'],
     '굵은 선으로 묶인 칸에는 목표 숫자와 연산이 적혀 있어요. 묶음 안의 숫자를 그 연산으로 계산하면 목표 숫자가 나와야 해요.': ['Each cage outlined in bold shows a target and an operation. The numbers inside, combined with that operation, must make the target.', '太線で囲まれたブロックには目標の数と演算が書かれています。ブロック内の数字をその演算で計算すると目標の数になる必要があります。', '粗线围起的区块标有目标数字和运算。区块内的数字按该运算计算后必须等于目标数字。'],

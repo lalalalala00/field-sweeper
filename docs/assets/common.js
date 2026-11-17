@@ -10,6 +10,17 @@
   const EXTRA = {
     '네모 안에 네모': ['Nemo in Nemo', 'ネモ・イン・ネモ', '方中方'],
     '웹': ['Web', 'Web', '网页版'],
+    // 영어는 별 1개와 2개의 문장 모양이 달라서 개수별로 따로 둔다
+    '{0} · {1}×{1} · 별 1개': ['{0} · {1}×{1} · 1 star', '{0} · {1}×{1} · 星1個', '{0} · {1}×{1} · 1颗星'],
+    '{0} · {1}×{1} · 별 2개': ['{0} · {1}×{1} · 2 stars', '{0} · {1}×{1} · 星2個', '{0} · {1}×{1} · 2颗星'],
+    '{0}×{0} · 별 1개': ['{0}×{0} · 1 star each', '{0}×{0} · 星1個ずつ', '{0}×{0} · 每处1颗星'],
+    '{0}×{0} · 별 2개': ['{0}×{0} · 2 stars each', '{0}×{0} · 星2個ずつ', '{0}×{0} · 每处2颗星'],
+    '별 {0}/{1}': ['Stars {0}/{1}', '星 {0}/{1}', '星 {0}/{1}'],
+    '가로줄·세로줄·구역마다 별 1개씩. 별끼리는 대각선으로도 닿을 수 없어요.': ['One star in every row, column and region. Stars can’t touch, not even diagonally.', '横・縦の列と区域ごとに星1個ずつ。星どうしは斜めでも接しません。', '每行、每列、每个区域各1颗星。星星之间斜向也不能相邻。'],
+    '가로줄·세로줄·구역마다 별 2개씩. 별끼리는 대각선으로도 닿을 수 없어요.': ['Two stars in every row, column and region. Stars can’t touch, not even diagonally.', '横・縦の列と区域ごとに星2個ずつ。星どうしは斜めでも接しません。', '每行、每列、每个区域各2颗星。星星之间斜向也不能相邻。'],
+    '별과 점을 모두 지울까요?': ['Clear all stars and dots?', '星と点をすべて消しますか？', '要清除所有星星和点吗？'],
+    '규칙에 어긋난 별 표시': ['Show rule-breaking stars', 'ルール違反の星を表示', '显示违规的星星'],
+    '구역 색 칠하기': ['Tint regions', '区域に色をつける', '区域上色'],
     '계산이 틀린 묶음 표시': ['Show wrong cages', '計算が合わないブロックを表示', '显示计算错误的区块'],
     '게임 난이도 {0}': ['Game difficulty: {0}', 'ゲームの難しさ：{0}', '游戏难度：{0}'],
     '{0}행 {1}열': ['Row {0}, column {1}', '{0}行 {1}列', '第{0}行 第{1}列'],
@@ -76,6 +87,7 @@
     { id: 'pair', title: 'Pair Paths', href: 'pair.html', weight: 2 },
     { id: 'switch', title: 'Switch Squares', href: 'switch.html', weight: 3 },
     { id: 'calc', title: 'Calc Squares', href: 'calc.html', weight: 2 },
+    { id: 'star', title: 'Star Squares', href: 'star.html', weight: 2 },
   ].map((k, i) => ({ ...k, number: String(i + 1).padStart(2, '0') }));
   const kind = id => KINDS.find(k => k.id === id);
 
@@ -109,6 +121,14 @@
     } else if (id === 'pair') {
       // 두 점을 잇는 길
       body = `<path d="M7 7v10h10" fill="none" stroke="currentColor" stroke-width="${thin * 1.15}" stroke-linejoin="round"/><circle cx="7" cy="7" r="2.1" fill="currentColor"/><circle cx="17" cy="17" r="2.1" fill="currentColor"/>`;
+    } else if (id === 'star') {
+      // 네모 안의 별 하나
+      let d = '';
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 2.6 : 6;
+        d += `${k ? 'L' : 'M'}${(12 + Math.cos(a) * r).toFixed(2)} ${(12.6 + Math.sin(a) * r).toFixed(2)}`;
+      }
+      body = `<path d="${d}Z" fill="currentColor"/>`;
     } else if (id === 'calc') {
       // 칸 묶음의 덧셈·곱셈
       body = `<path d="M8.5 5.5v6M5.5 8.5h6M13.4 13.4l5.2 5.2M18.6 13.4l-5.2 5.2" stroke="currentColor" stroke-width="${thin * 1.1}" stroke-linecap="round"/>`;
