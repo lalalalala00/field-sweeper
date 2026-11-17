@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="거울 방향을 바꿔 빛이 모든 별을 지나 목적지로 나가게 하는 거울네모.">
+<meta name="theme-color" content="#f6f4ec">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="assets/paper.css">
+<style>
+:root { --accent: var(--fill-mirror); }
+.status { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; font-size: 14px; font-variant-numeric: tabular-nums; margin: 0; }
+.status span + span::before { content: "·"; margin-right: 14px; color: var(--ink-soft); }
+.status .ok { font-weight: 600; }
+canvas.board { border-radius: 0; }
+</style>
+<title>Mirror Squares</title>
+</head>
+<body>
+<div class="puzzle" id="app">
+  <div class="stage">
+    <div class="board-wrap empty" id="wrap"><canvas class="board" id="board" role="img" tabindex="0"></canvas></div>
+    <div class="notice" id="notice" role="status" hidden></div>
+    <p class="status" id="status" aria-live="polite"></p>
+    <p class="guide" id="guide"></p>
+  </div>
+  <div class="controls">
+    <div class="tools">
+      <button class="tool" id="undo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span></span></button>
+      <button class="tool" id="restart"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><span></span></button>
+    </div>
+  </div>
+</div>
+<script src="assets/i18n.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/mirror-engine.js"></script>
+<script>
+(() => {
+  // 앱에 화면은 아직 없다. 규칙은 FieldSweeper/Model/MirrorEngine.swift와 같다.
+  const E = MirrorEngine, { t, store, stats, clock } = Nemo;
+  const K = Nemo.kind('mirror');
+  const $ = id => document.getElementById(id);
+  const app = $('app'), wrap = $('wrap'), canvas = $('board');
+  const bar = Nemo.topBar('mirror');
+  app.prepend(bar);
+  const q = sel => bar.querySelector(sel);
+  let showTimer = store.get('showTimer', true);
+
+  // orient: 회전 거울의 지금 방향, initial: 처음 방향(처음부터 다시용), history: 돌린 칸 순서
+  // moves: 거울을 돌린 횟수. 되돌리기도 '같은 거울을 다시 돌리기'와 같아서 1회로 센다(스위치네모와 같다).
+  // min: 처음 방향에서 정답과 다른 회전 거울 수 = 최소 조작 수
+  const G = { puzzle: null, orient: {}, initial: {}, history: [], moves: 0, min: 0, status: 'empty', counted: false,
+    timer: new Nemo.Timer(), isNewBest: false, trace: null };
+  const level = () => E.LEVELS[(G.puzzle ? G.puzzle.level : 1) - 1];
+  const size = () => (G.puzzle ? G.puzzle.size : 5);
+  const subtitle = () => (G.puzzle ? `${t(level().name)} · ${size()}×${size()}` : '');
+  const isRotatable = i => { const c = G.puzzle.cells[i]; return !!(c && c.mirror != null && !c.fixed); };
+
+  // ── 시작·저장 ──
+  function start(puzzle, saved) {
+    G.puzzle = puzzle;
+    G.initial = saved ? { ...saved.initial } : E.scramble(puzzle);
+    G.orient = saved ? { ...saved.orient } : { ...G.initial };
+    G.history = saved ? saved.history.slice() : [];
+    G.counted = saved ? !!saved.counted : false;
+    G.moves = saved ? saved.moves ?? saved.history.length : 0;
+    G.min = E.minimumMoves(puzzle, G.initial);
+    G.isNewBest = false;
+    G.timer = new Nemo.Timer(saved ? saved.elapsed : 0);
+    G.timer.start();
+    G.status = 'playing';
+    focus = null;
+    G.trace = E.trace(G.puzzle, G.orient);
+    render();
+  }
+  function restore(s) {
+    const p = s && s.puzzle;
+    if (!p || !(p.size >= 3) || p.cells?.length !== p.size * p.size || !p.start || !p.goal || !Array.isArray(p.stars)
+      || !E.LEVELS[p.level - 1] || !s.orient || !s.initial || !Array.isArray(s.history)) return false;
+    start(p, s);
+    return true;
+  }
+  function save() {
+    if (G.status !== 'playing') return;
+    store.set('mirror.save', { puzzle: G.puzzle, initial: G.initial, orient: G.orient, history: G.history, moves: G.moves,
+      lit: G.trace ? G.trace.lit : 0, elapsed: G.timer.seconds, counted: G.counted, savedAt: Date.now() });
+  }
+
+  // ── 입력 ──
+  function turn(i) {
+    if (G.status !== 'playing') return;
+    if (!isRotatable(i)) {
+      if (G.puzzle.cells[i] && G.puzzle.cells[i].mirror != null) notice(t('고정된 거울이에요'));
+      return;
+    }
+    G.orient[i] = 1 - G.orient[i];
+    G.history.push(i);
+    G.moves++;
+    if (!G.counted) { G.counted = true; stats.recordStart('mirror'); }
+    after();
+  }
+  function undo() {
+    if (G.status !== 'playing' || !G.history.length) return;
+    const i = G.history.pop();
+    G.orient[i] = 1 - G.orient[i];
+    G.moves++;
+    after();
+  }
+  function after() {
+    G.trace = E.trace(G.puzzle, G.orient);
+    if (G.trace.solved) win(); else save();
+    render();
+  }
+  function win() {
+    G.timer.pause();
+    G.status = 'won';
+    store.set('mirror.save', null);
+    G.isNewBest = stats.recordWin('mirror', level().name, Math.round(G.timer.seconds));
+    setTimeout(() => { if (G.status === 'won') showResult(); }, 500);
+  }
+
+  let noticeTimer = null;
+  function notice(text) {
+    $('notice').textContent = text;
+    $('notice').hidden = false;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => { $('notice').hidden = true; }, 1600);
+  }
+
+  // ── 그리기: 판 둘레에 시작점·목적지를 놓을 여백을 둔다 ──
+  let geo = null, focus = null;
+  function layout() {
+    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight, 560));
+    const n = size(), cell = side / (n + 1.2), m = cell * 0.6;
+    geo = { side, n, cell, m };
+  }
+  const center = i => ({ x: geo.m + ((i % geo.n) + 0.5) * geo.cell, y: geo.m + (Math.floor(i / geo.n) + 0.5) * geo.cell });
+  function portPoint(port) {
+    const { n, cell, m } = geo, mid = v => m + (v + 0.5) * cell, edge = m * 0.5;
+    if (port.side === 0) return { x: mid(port.k), y: edge };
+    if (port.side === 1) return { x: m + n * cell + edge, y: mid(port.k) };
+    if (port.side === 2) return { x: mid(port.k), y: m + n * cell + edge };
+    return { x: edge, y: mid(port.k) };
+  }
+  function starPath(ctx, x, y, r) {
+    ctx.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+  }
+  function draw() {
+    layout();
+    if (geo.side <= 0) return;
+    const { side, n, cell, m } = geo, c = Nemo.cssColor;
+    const ctx = Nemo.fitCanvas(canvas, side, side);
+    ctx.clearRect(0, 0, side, side);
+    const grid = n * cell;
+    // 판
+    Nemo.roundRect(ctx, m, m, grid, grid, 6);
+    ctx.fillStyle = c('--cell'); ctx.fill();
+    ctx.beginPath();
+    for (let k = 1; k < n; k++) {
+      const p = Math.round(m + k * cell) + 0.5;
+      ctx.moveTo(p, m); ctx.lineTo(p, m + grid); ctx.moveTo(m, p); ctx.lineTo(m + grid, p);
+    }
+    ctx.strokeStyle = c('--thin'); ctx.lineWidth = 1; ctx.stroke();
+    if (!G.puzzle) { Nemo.roundRect(ctx, m, m, grid, grid, 6); ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2; ctx.stroke(); return; }
+
+    const cells = G.puzzle.cells;
+    // 칸 바탕: 돌릴 수 있는 거울, 고정 거울, 벽
+    cells.forEach((cl, i) => {
+      if (!cl) return;
+      const x = m + (i % n) * cell, y = m + Math.floor(i / n) * cell;
+      if (cl.wall) { Nemo.roundRect(ctx, x + 3, y + 3, cell - 6, cell - 6, cell * 0.14); ctx.fillStyle = c('--ink-soft'); ctx.fill(); return; }
+      Nemo.roundRect(ctx, x + 2, y + 2, cell - 4, cell - 4, cell * 0.14);
+      ctx.fillStyle = c(cl.fixed ? '--mr-fixed' : '--mr-tint'); ctx.fill();
+    });
+
+    // 빛
+    const tr = G.trace, pts = [portPoint(G.puzzle.start), ...tr.path.map(center)];
+    let endMark = null;
+    if (tr.exit) {
+      const e = portPoint(tr.exit);
+      pts.push(e);
+      if (!tr.solved && !(tr.exit.side === G.puzzle.goal.side && tr.exit.k === G.puzzle.goal.k)) endMark = e;
+    } else if (tr.blocked != null) {
+      const last = pts[pts.length - 1], w = center(tr.blocked);
+      const stop = { x: (last.x + w.x) / 2, y: (last.y + w.y) / 2 };
+      pts.push(stop);
+      endMark = stop;
+    }
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.shadowColor = c('--mr-glow'); ctx.shadowBlur = cell * 0.35;
+    ctx.strokeStyle = c('--mr-beam'); ctx.lineWidth = Math.max(3, cell * 0.1);
+    ctx.beginPath(); pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke();
+    ctx.restore();
+
+    // 거울
+    ctx.lineCap = 'round';
+    cells.forEach((cl, i) => {
+      if (!cl || cl.mirror == null) return;
+      const o = cl.fixed ? cl.mirror : G.orient[i], { x, y } = center(i), h = cell * 0.32;
+      const [x1, y1, x2, y2] = o === 0 ? [x - h, y + h, x + h, y - h] : [x - h, y - h, x + h, y + h];
+      ctx.strokeStyle = c(cl.fixed ? '--ink-soft' : '--ink'); ctx.lineWidth = Math.max(3, cell * 0.09);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      if (cl.fixed) {
+        // 고정 거울은 양 끝에 못
+        ctx.fillStyle = c('--ink-soft');
+        for (const [px, py] of [[x1, y1], [x2, y2]]) { ctx.beginPath(); ctx.arc(px, py, cell * 0.06, 0, Math.PI * 2); ctx.fill(); }
+      }
+    });
+
+    // 별: 빛이 지나가면 채워진다
+    const lit = new Set(tr.path);
+    for (const s of G.puzzle.stars) {
+      const { x, y } = center(s);
+      starPath(ctx, x, y, cell * 0.24);
+      if (lit.has(s)) { ctx.fillStyle = c('--mr-beam'); ctx.fill(); ctx.strokeStyle = c('--ink'); ctx.lineWidth = 1.2; ctx.stroke(); }
+      else { ctx.strokeStyle = c('--ink-soft'); ctx.lineWidth = 1.6; ctx.stroke(); }
+    }
+
+    // 판 테두리
+    Nemo.roundRect(ctx, m, m, grid, grid, 6);
+    ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2; ctx.stroke();
+
+    // 시작점: 빛이 나오는 작은 등, 목적지: 과녁
+    const s = portPoint(G.puzzle.start), r = m * 0.36;
+    ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.fillStyle = c('--mr-beam'); ctx.fill();
+    ctx.strokeStyle = c('--ink'); ctx.lineWidth = 1.5; ctx.stroke();
+    const g = portPoint(G.puzzle.goal);
+    ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, Math.PI * 2); ctx.fillStyle = c(tr.solved ? '--mr-beam' : '--bg'); ctx.fill();
+    ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(g.x, g.y, r * 0.38, 0, Math.PI * 2); ctx.fillStyle = c('--ink'); ctx.fill();
+
+    // 빛이 엉뚱한 곳으로 나가거나 벽에 막히면 그 자리에 ×
+    if (endMark && G.status === 'playing') {
+      const a = m * 0.22;
+      ctx.strokeStyle = c('--wrong'); ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(endMark.x - a, endMark.y - a); ctx.lineTo(endMark.x + a, endMark.y + a);
+      ctx.moveTo(endMark.x + a, endMark.y - a); ctx.lineTo(endMark.x - a, endMark.y + a); ctx.stroke();
+    }
+
+    // 키보드로 고른 거울
+    if (focus != null && document.activeElement === canvas) {
+      const x = m + (focus % n) * cell, y = m + Math.floor(focus / n) * cell;
+      Nemo.roundRect(ctx, x + 1, y + 1, cell - 2, cell - 2, cell * 0.16);
+      ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2.5; ctx.stroke();
+    }
+    canvas.setAttribute('aria-label', `${K.title} · ${t('별 {0}/{1}', tr.lit, G.puzzle.stars.length)}`);
+  }
+
+  function render() {
+    const playing = G.status === 'playing';
+    q('[data-sub]').textContent = subtitle();
+    q('[data-pause]').disabled = !playing;
+    wrap.classList.toggle('empty', G.status === 'empty');
+    if (G.puzzle && G.trace) {
+      const tr = G.trace;
+      $('status').innerHTML = `<span>${t('별 {0}/{1}', tr.lit, G.puzzle.stars.length)}</span>`
+        + `<span>${t('조작 {0}회', G.moves)}</span><span class="ok">${t('최소 {0}회', G.min)}</span>`
+        + `<span class="${tr.solved ? 'ok' : ''}">${t(tr.solved ? '도착' : '도착 전')}</span>`;
+    } else $('status').innerHTML = '';
+    $('undo').disabled = !playing || !G.history.length;
+    $('undo').querySelector('span').textContent = t('되돌리기');
+    $('restart').disabled = !playing || !G.moves;
+    tick();
+    draw();
+  }
+  function tick() {
+    const show = showTimer && G.status === 'playing';
+    q('[data-timer]').hidden = !show;
+    if (show) q('[data-time]').textContent = clock(Math.floor(G.timer.seconds));
+  }
+  setInterval(tick, 250);
+  new ResizeObserver(draw).observe(wrap);
+  Nemo.onTheme(draw);
+
+  canvas.addEventListener('click', e => {
+    if (!G.puzzle || !geo) return;
+    const r = canvas.getBoundingClientRect();
+    const col = Math.floor((e.clientX - r.left - geo.m) / geo.cell), row = Math.floor((e.clientY - r.top - geo.m) / geo.cell);
+    if (col < 0 || row < 0 || col >= geo.n || row >= geo.n) return;
+    focus = row * geo.n + col;
+    turn(focus);
+  });
+  // 키보드: 방향키로 거울 사이를 옮겨 다니고, Enter·Space로 돌린다.
+  canvas.addEventListener('keydown', e => {
+    if (G.status !== 'playing') return;
+    const mirrors = G.puzzle.cells.map((c, i) => (c && c.mirror != null ? i : -1)).filter(i => i >= 0);
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (focus != null) turn(focus); return; }
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const k = mirrors.indexOf(focus);
+    focus = mirrors[(k < 0 ? 0 : k + step + mirrors.length) % mirrors.length];
+    draw();
+  });
+  canvas.addEventListener('focus', draw);
+  canvas.addEventListener('blur', draw);
+  document.addEventListener('keydown', e => {
+    if (G.status === 'playing' && !Nemo.isOpen() && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+  });
+
+  // ── 겹쳐 보이는 창 ──
+  const time = () => (showTimer ? clock(Math.round(G.timer.seconds)) : null);
+  function showLevels() {
+    G.timer.pause();
+    const best = stats.load('mirror').bestByDifficulty;
+    Nemo.levelPicker({
+      items: E.LEVELS.map(l => ({ id: l.id, name: t(l.name), best: best[l.name],
+        detail: t('{0}×{1} · 거울 {2}~{3}개', l.size, l.size, l.mirrors[0], l.mirrors[1]) })),
+      current: store.get('mirror.lastLevel', 1), canCancel: G.status !== 'empty',
+      onPick: newPuzzle,
+      onCancel: () => { if (G.status === 'empty') location.href = './'; else G.timer.start(); },
+    });
+  }
+  function newPuzzle(id) {
+    store.set('mirror.lastLevel', id);
+    G.timer.pause();
+    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(E.LEVELS[id - 1].name)));
+    setTimeout(() => {
+      const puzzle = E.generate(id);
+      store.set('mirror.save', null);
+      Nemo.close();
+      start(puzzle);
+      save();
+    }, 40);
+  }
+  function pause() {
+    if (G.status !== 'playing' || Nemo.isOpen()) return;
+    G.timer.pause();
+    save();
+    Nemo.pauseCover({ subtitle: subtitle(), time: time(), onResume: () => G.timer.start() });
+  }
+  function askRestart() {
+    G.timer.pause();
+    Nemo.confirmBox({ title: t('처음부터 다시 풀까요?'), message: t('같은 문제를 처음 상태로 되돌려요.'), ok: t('다시 풀기'),
+      onOk: () => { start(G.puzzle, { initial: G.initial, orient: G.initial, history: [], moves: 0, elapsed: G.timer.seconds, counted: G.counted }); save(); },
+      onCancel: () => G.timer.start() });
+  }
+  function showResult() {
+    Nemo.result({ title: t('{0} 완성', K.title), subtitle: subtitle(), time: time(), isNewBest: G.isNewBest,
+      note: G.moves <= G.min ? `${t('최소 조작으로 풀었어요')} · ${t('조작 {0}회', G.moves)}` : t('조작 {0}회 · 최소 {1}회', G.moves, G.min),
+      onClose: () => {}, onOther: showLevels, onAgain: () => newPuzzle(G.puzzle.level) });
+  }
+
+  $('undo').onclick = undo;
+  $('restart').onclick = askRestart;
+  q('[data-pause]').onclick = pause;
+  q('[data-back]').addEventListener('click', save);
+  Nemo.menu(q('[data-more]'), q('[data-menu]'), () => [
+    { section: t('새 퍼즐') },
+    ...E.LEVELS.map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
+    { sep: true },
+    { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing' || !G.moves, onClick: askRestart },
+  ]);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  window.addEventListener('pagehide', save);
+
+  document.title = `${K.title} · ${t('네모 안에 네모')}`;
+  $('restart').querySelector('span').textContent = t('처음부터 다시');
+  $('guide').textContent = t('빛이 모든 별을 지나 목적지로 나가게 해 주세요. 거울을 누르면 방향이 바뀌어요.');
+  if (!restore(store.get('mirror.save', null))) { render(); showLevels(); }
+})();
+</script>
+</body>
+</html>

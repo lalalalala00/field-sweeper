@@ -17,6 +17,12 @@
     '최소 조작으로 풀었어요': ['Solved in the fewest moves', '最少手数でクリア', '以最少步数完成'],
     '조작 {0}회 · 최소 {1}회': ['{0} moves · fewest {1}', '{0}手 · 最少 {1}手', '{0} 步 · 最少 {1} 步'],
     '{0}×{1} · 최소 {2}~{3}회': ['{0}×{1} · {2}–{3} moves', '{0}×{1} · 最少 {2}〜{3}手', '{0}×{1} · 最少 {2}–{3} 步'],
+    '별 {0}/{1}': ['Stars {0}/{1}', '星 {0}/{1}', '星星 {0}/{1}'],
+    '도착': ['Arrived', '到着', '已到达'],
+    '도착 전': ['Not there yet', '未到着', '未到达'],
+    '고정된 거울이에요': ['This mirror is fixed', 'この鏡は固定されています', '这面镜子是固定的'],
+    '{0}×{1} · 거울 {2}~{3}개': ['{0}×{1} · {2}–{3} mirrors', '{0}×{1} · 鏡 {2}〜{3}枚', '{0}×{1} · 镜子 {2}–{3} 面'],
+    '빛이 모든 별을 지나 목적지로 나가게 해 주세요. 거울을 누르면 방향이 바뀌어요.': ['Send the light through every star and out at the goal. Tap a mirror to turn it.', '光がすべての星を通って出口から出るようにしてください。鏡を押すと向きが変わります。', '让光穿过所有星星并从终点射出。点击镜子可改变方向。'],
     '남은 {0}회': ['{0} moves left', '残り {0}手', '剩余 {0} 步'],
     '횟수 제한': ['Move limit', '手数制限', '步数限制'],
     '최소 {0}회 안에 풀지 못했어요': ['Not solved within {0} moves', '{0}手以内に解けませんでした', '未能在 {0} 步内完成'],
@@ -55,7 +61,7 @@
     { id: 'shikaku', title: 'Shikaku', href: 'shikaku.html' },
     { id: 'futoshiki', title: 'Futoshiki', href: 'futoshiki.html' },
     // 아직 만들지 않은 게임은 메인 화면에 '준비 중'으로 보인다.
-    { id: 'mirror', title: 'Mirror Squares', href: null },
+    { id: 'mirror', title: 'Mirror Squares', href: 'mirror.html' },
     { id: 'pair', title: 'Pair Paths', href: null },
     { id: 'switch', title: 'Switch Squares', href: 'switch.html' },
   ].map((k, i) => ({ ...k, number: String(i + 1).padStart(2, '0') }));

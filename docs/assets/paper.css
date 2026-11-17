@@ -8,6 +8,8 @@
   --fill-mirror: #c3a8c6; --fill-pair: #dfb3b7; --fill-switch: #bfd8cc;
   --text-mirror: #ffffff; --text-pair: var(--ink); --text-switch: var(--ink);
   /* 스위치네모 불: 꺼진 칸은 어둡고 속이 빈 원, 켜진 칸은 밝고 빛나는 원(색과 밝기, 모양이 모두 다르다) */
+  /* 거울네모: 빛·켜진 별, 돌릴 수 있는 거울 칸, 고정 거울 칸 */
+  --mr-beam: #e39a2b; --mr-glow: rgba(240, 165, 50, .55); --mr-tint: #e2d5e0; --mr-fixed: #e4e0d3;
   --sw-off: #cdc8b8; --sw-ring: #8f8a7a; --sw-on: #f6dd88; --sw-core: #fffaf0; --sw-glow: rgba(255, 205, 80, .85);
   --scrim: rgba(0, 0, 0, .35);
   /* 게임별 판 색: 스도쿠(sd), 후토시키(ft), 시카쿠 영역(sk1…6) */
@@ -25,6 +27,7 @@
   --fill-minesweeper: #3e4d38; --fill-sudoku: #3b3824; --fill-shikaku: #45352a; --fill-futoshiki: #2f3a4a;
   --text-minesweeper: #f2f6ee; --text-futoshiki: #f2f6ee;
   --fill-mirror: #483c49; --fill-pair: #55383a; --fill-switch: #2c3d35; --text-mirror: #f2f6ee;
+  --mr-beam: #ffc861; --mr-glow: rgba(255, 200, 97, .45); --mr-tint: #3e3342; --mr-fixed: #262b24;
   --sw-off: #232821; --sw-ring: #56604f; --sw-on: #d2ae52; --sw-core: #fff3cf; --sw-glow: rgba(255, 205, 100, .5);
   --sd-related: #262a20; --sd-same: #48432a; --sd-selected: #6b6238;
   --ft-related: #232a33; --ft-same: #334054; --ft-guide: #a9bbd3; --ft-line: #343b32;
@@ -37,6 +40,7 @@
   --fill-minesweeper: #3e4d38; --fill-sudoku: #3b3824; --fill-shikaku: #45352a; --fill-futoshiki: #2f3a4a;
   --text-minesweeper: #f2f6ee; --text-futoshiki: #f2f6ee;
   --fill-mirror: #483c49; --fill-pair: #55383a; --fill-switch: #2c3d35; --text-mirror: #f2f6ee;
+  --mr-beam: #ffc861; --mr-glow: rgba(255, 200, 97, .45); --mr-tint: #3e3342; --mr-fixed: #262b24;
   --sw-off: #232821; --sw-ring: #56604f; --sw-on: #d2ae52; --sw-core: #fff3cf; --sw-glow: rgba(255, 205, 100, .5);
   --sd-related: #262a20; --sd-same: #48432a; --sd-selected: #6b6238;
   --ft-related: #232a33; --ft-same: #334054; --ft-guide: #a9bbd3; --ft-line: #343b32;
