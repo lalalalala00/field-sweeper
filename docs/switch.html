@@ -215,7 +215,7 @@
   }
   setInterval(tick, 250);
   function fit() {
-    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight - Nemo.SO_H, 480));
+    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight, 480));
     if (side > 0) grid.style.setProperty('--side', side + 'px');
   }
   new ResizeObserver(fit).observe(wrap);

@@ -134,7 +134,7 @@ canvas.board { border-radius: 0; }
   // ── 그리기: 판 둘레에 시작점·목적지를 놓을 여백을 둔다 ──
   let geo = null, focus = null;
   function layout() {
-    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight - Nemo.SO_H, 560));
+    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight, 560));
     const n = size(), cell = side / (n + 1.2), m = cell * 0.6;
     geo = { side, n, cell, m };
   }
@@ -324,7 +324,7 @@ canvas.board { border-radius: 0; }
   function newPuzzle(id) {
     store.set('mirror.lastLevel', id);
     G.timer.pause();
-    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(E.LEVELS[id - 1].name)));
+    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(E.LEVELS[id - 1].name)), 'mirror', E.LEVELS[id - 1].name);
     setTimeout(() => {
       const puzzle = E.generate(id);
       store.set('mirror.save', null);

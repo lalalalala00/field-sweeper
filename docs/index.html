@@ -76,7 +76,7 @@ body { display: flex; flex-direction: column; min-height: 100dvh; }
 .stamp i { font: normal 11px var(--f-serif); color: var(--ink-soft); }
 .links { display: flex; align-items: center; gap: 22px; }
 .links button { display: flex; align-items: center; gap: 7px; min-height: 44px; border: 0; background: none; padding: 0; font-size: 15px; }
-.links button::before { content: ""; width: 11px; height: 11px; border: 1px solid var(--ink); border-radius: 50%; }
+.links button::before { content: ""; width: 14px; height: 14px; box-sizing: border-box; border: 2.5px solid var(--ink); border-radius: 1.5px; }
 .seal { margin-left: auto; font: 10px var(--f-serif); padding: 3px 10px; border: 1px solid var(--ink); border-radius: 50%; }
 
 /* 기록·설정 시트 */
@@ -245,10 +245,12 @@ body { display: flex; flex-direction: column; min-height: 100dvh; }
   // 앱의 AppSettingsView.swift: 모든 게임에 함께 적용되는 설정
   $('openSettings').onclick = () => {
     const langs = [['auto', t('기기 설정')], ['ko', '한국어'], ['ja', '日本語'], ['zh', '中文'], ['en', 'English']];
+    const themes = [['auto', t('기기 설정')], ['light', t('라이트')], ['dark', t('다크')]];
     const el = sheet(t('설정'), `<p class="label">${t('옵션')}</p>
       <div class="group">
         <label class="opt"><span><b>${t('시간 표시')}</b><small>${t('끄면 시간 없이 느긋하게 플레이해요')}</small></span><input type="checkbox" class="switch" data-timer></label>
         <label class="opt"><b>${t('언어')}</b><select data-lang>${langs.map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join('')}</select></label>
+        <label class="opt"><b>${t('화면')}</b><select data-theme-pick>${themes.map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join('')}</select></label>
       </div>
       <p class="label">${t('정보')}</p>
       <div class="group">
@@ -259,6 +261,9 @@ body { display: flex; flex-direction: column; min-height: 100dvh; }
     timer.checked = store.get('showTimer', true);
     timer.onchange = () => store.set('showTimer', timer.checked);
     lang.value = Nemo.langPref;
+    const theme = el.querySelector('[data-theme-pick]');
+    theme.value = store.get('theme', 'auto');
+    theme.onchange = () => Nemo.setTheme(theme.value);
     lang.onchange = () => { Nemo.setLang(lang.value); render(); $('openSettings').click(); };
   };
 

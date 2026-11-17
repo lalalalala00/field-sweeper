@@ -184,7 +184,7 @@ window.NumberPuzzle = function (cfg) {
 
   let side = 0;
   function draw() {
-    const w = Math.min(wrap.clientWidth, wrap.clientHeight - Nemo.SO_H, cfg.maxWidth);
+    const w = Math.min(wrap.clientWidth, wrap.clientHeight, cfg.maxWidth);
     if (w <= 0) return;
     side = Math.floor(w);
     const ctx = Nemo.fitCanvas(canvas, side, side);
@@ -242,7 +242,7 @@ window.NumberPuzzle = function (cfg) {
     store.set(cfg.kind + '.lastLevel', id);
     G.timer.pause();
     const level = cfg.levels.find(l => l.id === id);
-    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(level.name)));
+    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(level.name)), cfg.kind, level.name);
     // 창이 먼저 그려지도록 한 프레임 뒤에 만든다.
     setTimeout(() => {
       const puzzle = cfg.generate(id);

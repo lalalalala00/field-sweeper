@@ -6,6 +6,14 @@
     set(k, v) { try { if (v == null) localStorage.removeItem('fs:' + k); else localStorage.setItem('fs:' + k, JSON.stringify(v)); } catch {} },
   };
 
+  // ── 화면 모드: 설정에서 고른 라이트·다크. 'auto'면 기기 설정을 따른다(앱의 AppSettingsView와 같다). ──
+  function setTheme(v) {
+    store.set('theme', v);
+    if (v === 'light' || v === 'dark') document.documentElement.dataset.theme = v;
+    else delete document.documentElement.dataset.theme;
+  }
+  setTheme(store.get('theme', 'auto'));
+
   // ── 번역: 한국어 문구가 키, [영어, 일본어, 중국어 간체] ──
   const EXTRA = {
     '네모 안에 네모': ['Nemo in Nemo', 'ネモ・イン・ネモ', '方中方'],
@@ -218,8 +226,12 @@
   function close() { if (current) { current.remove(); current = null; } }
   const isOpen = () => current != null;
 
-  function working(text) {
-    overlay(`<div class="card center" role="status"><div class="spinner"></div><p style="color:var(--ink)">${esc(text)}</p></div>`);
+  // 만드는 데 1초 넘게 걸릴 수 있는 난이도(앱의 GenerationTime과 같다). 이때는 안내를 한 줄 더 보여준다.
+  const SLOW = { star: ['고급', '전문가'], calc: ['지옥'], pair: ['전문가'], mirror: ['전문가'], sudoku: ['고급'] };
+  function working(text, kindId, levelName) {
+    const slow = (SLOW[kindId] || []).includes(levelName);
+    overlay(`<div class="card center" role="status"><div class="spinner"></div><p style="color:var(--ink)">${esc(text)}</p>`
+      + (slow ? `<p style="font-size:12px">${esc(t('어려운 퍼즐이라 몇 초 걸릴 수 있어요'))}</p>` : '') + '</div>');
   }
 
   // items: [{ id, name, detail, best }]
@@ -310,20 +322,16 @@
     return el;
   }
 
-  // '처음부터 다시' 버튼을 판 바로 위 왼쪽에 둔다(앱과 같은 자리). 판(wrap의 첫 요소)과 한 묶음으로 가운데에 놓인다.
-  // 같은 문제를 처음 상태로 돌리고 시간은 이어서 흐른다. 판 크기를 잴 때는 wrap 높이에서 SO_H(버튼 줄 32 + 간격 8)를 뺀다.
-  const SO_H = 40;
+  // '처음부터 다시' 버튼을 상단 바 바로 아래 왼쪽에 둔다(앱과 같은 자리). 판은 그 아래 남은 공간의 가운데에 놓인다.
+  // 같은 문제를 처음 상태로 돌리고 시간은 이어서 흐른다.
   function placeStartOver(wrap, btn) {
-    const board = wrap.firstElementChild;
-    const col = document.createElement('div');
-    col.className = 'board-col';
+    const stage = wrap.closest('.stage') || wrap;
     const row = document.createElement('div');
     row.className = 'so-row';
     btn.className = 'startover';
     btn.innerHTML = `${icon('rewind')}<span>${esc(t('처음부터 다시'))}</span>`;
-    wrap.insertBefore(col, board);
     row.append(btn);
-    col.append(row, board);
+    stage.parentElement.insertBefore(row, stage);
     return btn;
   }
 
@@ -366,7 +374,7 @@
 
   window.Nemo = {
     store, t, setLang, get lang() { return lang; }, get langPref() { return langPref; },
-    KINDS, kind, nameHTML, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel, placeStartOver, SO_H,
+    KINDS, kind, nameHTML, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel, placeStartOver, setTheme,
     overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, menu, topBar, newButton,
     fitCanvas, cssColor, onTheme, roundRect,
   };

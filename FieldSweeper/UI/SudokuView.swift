@@ -189,7 +189,8 @@ struct SudokuView: View {
             }
             .transition(.opacity)
         } else if let level = generating {
-            PuzzleWorkingCard(text: String(localized: "\(tr(level.name)) 퍼즐을 만들고 있어요", bundle: AppLanguage.bundle))
+            PuzzleWorkingCard(text: String(localized: "\(tr(level.name)) 퍼즐을 만들고 있어요", bundle: AppLanguage.bundle),
+                              expected: GenerationTime.expected(.sudoku, levelID: level.rawValue))
                 .transition(.opacity)
         } else if showLevels {
             PuzzleLevelPicker(

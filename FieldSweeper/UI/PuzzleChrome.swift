@@ -224,18 +224,53 @@ struct PuzzleResultCard: View {
 }
 
 /// 퍼즐을 만드는 동안 보여주는 작은 창.
+/// 오래 걸리는 난이도(expected가 있을 때)는 도는 표시 대신 진행 막대와 안내를 보여준다.
+/// 막대는 예상 시간에 맞춰 차오르되, 끝나기 전에는 꽉 차지 않고 거의 다 찬 채로 기다린다.
 struct PuzzleWorkingCard: View {
     let text: String
+    var expected: TimeInterval? = nil
+
+    @State private var start = Date()
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.25).ignoresSafeArea()
             VStack(spacing: 14) {
-                ProgressView().tint(Color(Paper.ink))
+                if let expected {
+                    TimelineView(.animation) { context in
+                        let t = context.date.timeIntervalSince(start)
+                        ProgressView(value: 0.96 * (1 - exp(-2.5 * t / expected)))
+                            .tint(Color(Paper.ink))
+                            .frame(width: 200)
+                    }
+                } else {
+                    ProgressView().tint(Color(Paper.ink))
+                }
                 Text(verbatim: text).font(.subheadline)
+                if expected != nil {
+                    Text("어려운 퍼즐이라 몇 초 걸릴 수 있어요")
+                        .font(.caption)
+                        .foregroundStyle(Color(Paper.inkSoft))
+                }
             }
+            .multilineTextAlignment(.center)
             .padding(24)
             .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 18))
+        }
+    }
+}
+
+/// 만드는 데 1초 넘게 걸릴 수 있는 난이도의 예상 시간(초). 엔진이 퍼즐을 골라 보는 시간에 맞춘다.
+enum GenerationTime {
+    static func expected(_ kind: GameKind, levelID: Int) -> TimeInterval? {
+        switch (kind, levelID) {
+        case (.star, StarLevel.expert.rawValue): 6
+        case (.star, StarLevel.hard.rawValue): 2
+        case (.calc, CalcLevel.hell.rawValue): 4
+        case (.pair, PairLevel.expert.rawValue): 2.5
+        case (.mirror, MirrorLevel.expert.rawValue): 1.5
+        case (.sudoku, SudokuLevel.hard.rawValue): 1.3
+        default: nil
         }
     }
 }

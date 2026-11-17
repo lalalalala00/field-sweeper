@@ -194,9 +194,8 @@ canvas.board { display: block; touch-action: none; border-radius: 6px; }
 ::-webkit-scrollbar-thumb { background: var(--rule); border: 3px solid transparent; background-clip: padding-box; border-radius: 1px; min-height: 28px; }
 ::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background: var(--ink-soft); background-clip: padding-box; }
 @supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: var(--rule) transparent; } }
-/* 판 바로 위 왼쪽의 '처음부터 다시'. 판과 한 묶음으로 가운데에 놓인다(앱과 같다) */
-.board-col { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.so-row { height: 32px; display: flex; }
+/* 상단 바 바로 아래 왼쪽의 '처음부터 다시'(앱과 같은 자리) */
+.so-row { width: 100%; max-width: 560px; height: 32px; display: flex; flex: none; }
 .startover { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 0; border-radius: 999px;
   background: var(--sheet); color: var(--ink); font: 500 13px system-ui, -apple-system, sans-serif; cursor: pointer; }
 .startover svg { width: 15px; height: 15px; }

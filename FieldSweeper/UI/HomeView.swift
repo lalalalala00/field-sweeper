@@ -199,7 +199,10 @@ struct HomeView: View {
     private func footerButton(_ title: LocalizedStringKey, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 7) {
-                Circle().stroke(Color(Paper.ink), lineWidth: 1).frame(width: 11, height: 11)
+                // 체크 칸 같은 작은 네모(테두리를 조금 두껍게)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .strokeBorder(Color(Paper.ink), lineWidth: 2.5)
+                    .frame(width: 14, height: 14)
                 Text(title).font(.subheadline)
             }
             .frame(minHeight: 44)

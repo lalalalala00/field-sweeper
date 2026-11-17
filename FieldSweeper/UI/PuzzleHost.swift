@@ -162,7 +162,8 @@ struct PuzzleHost<Game: HostedPuzzle & Observable, Board: View, Status: View, Co
             }
             .transition(.opacity)
         } else if let id = generating {
-            PuzzleWorkingCard(text: String(localized: "\(tr(level(id)?.name ?? "")) 퍼즐을 만들고 있어요", bundle: AppLanguage.bundle))
+            PuzzleWorkingCard(text: String(localized: "\(tr(level(id)?.name ?? "")) 퍼즐을 만들고 있어요", bundle: AppLanguage.bundle),
+                              expected: GenerationTime.expected(kind, levelID: id))
                 .transition(.opacity)
         } else if showLevels {
             let best = StatsStore.load(kind).bestByDifficulty

@@ -4,6 +4,7 @@ import SwiftUI
 struct AppSettingsView: View {
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage(AppLanguage.storageKey) private var language = "system"
+    @AppStorage("appearance") private var appearance = "system"
     @Environment(\.dismiss) private var dismiss
 
     static let privacyURL = URL(string: "https://lalalalala00.github.io/field-sweeper/privacy.html")!
@@ -32,6 +33,19 @@ struct AppSettingsView: View {
                                 ForEach(AppLanguage.options, id: \.code) { option in
                                     Text(verbatim: option.name).tag(option.code)
                                 }
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .tint(Color(Paper.ink))
+                        }
+                        Divider()
+                        HStack {
+                            Text("화면").font(.subheadline.weight(.medium))
+                            Spacer()
+                            Picker("화면", selection: $appearance) {
+                                Text("기기 설정").tag("system")
+                                Text("라이트").tag("light")
+                                Text("다크").tag("dark")
                             }
                             .pickerStyle(.menu)
                             .labelsHidden()

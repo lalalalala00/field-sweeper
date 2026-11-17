@@ -121,7 +121,7 @@
     ctx.closePath();
   }
   function draw() {
-    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight - Nemo.SO_H, 560));
+    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight, 560));
     if (side <= 0) return;
     const n = size(), cell = side / n;
     geo = { side, n, cell };
@@ -247,7 +247,7 @@
   function newPuzzle(id) {
     store.set('star.lastLevel', id);
     G.timer.pause();
-    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(E.LEVELS[id - 1].name)));
+    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(E.LEVELS[id - 1].name)), 'star', E.LEVELS[id - 1].name);
     setTimeout(() => {
       const puzzle = E.generate(id);
       store.set('star.save', null);

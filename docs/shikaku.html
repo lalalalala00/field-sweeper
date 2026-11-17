@@ -198,7 +198,7 @@
   const preview = () => (dragStart != null && dragEnd != null ? R.spanning(dragStart, dragEnd, size()) : null);
 
   function draw() {
-    const w = Math.min(wrap.clientWidth, wrap.clientHeight - Nemo.SO_H, 600);
+    const w = Math.min(wrap.clientWidth, wrap.clientHeight, 600);
     if (w <= 0) return;
     side = Math.floor(w);
     const ctx = Nemo.fitCanvas(canvas, side, side), c = name => Nemo.cssColor(name);
