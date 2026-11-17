@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="부등호를 따라 숫자를 채우는 후토시키. 4×4부터 7×7까지 네 가지 난이도.">
+<meta name="theme-color" content="#f6f4ec">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="assets/paper.css">
+<style>:root { --accent: var(--fill-futoshiki); }</style>
+<title>Futoshiki</title>
+</head>
+<body>
+<div class="puzzle" id="app">
+  <div class="stage">
+    <div class="board-wrap empty" id="wrap"><canvas class="board" id="board" role="img"></canvas></div>
+    <p class="guide" id="guide" hidden></p>
+  </div>
+  <div class="controls">
+    <div class="tools">
+      <button class="tool" id="undo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span></span></button>
+      <button class="tool" id="erase"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 20H20"/><path d="M5.6 15.6l8.5-8.5a2 2 0 0 1 2.8 0l2 2a2 2 0 0 1 0 2.8L12 18.8a4 4 0 0 1-2.8 1.2H8.6a2 2 0 0 1-1.4-.6l-1.6-1.6a2 2 0 0 1 0-2.2z"/><path d="M10 11.2l4.8 4.8"/></svg><span></span></button>
+      <button class="tool" id="note" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="M13.5 7l3 3"/></svg><span></span></button>
+    </div>
+    <div class="keys" id="keys"></div>
+  </div>
+</div>
+<script src="assets/i18n.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/futoshiki-engine.js"></script>
+<script src="assets/number-puzzle.js"></script>
+<script>
+(() => {
+  const E = FutoshikiEngine, { t } = Nemo;
+  // 칸 크기 대비 부등호 틈의 비율
+  const GAP = 0.42;
+
+  const peerCache = {};
+  const peers = n => peerCache[n] || (peerCache[n] = [...Array(n * n)].map((_, i) => {
+    const r = Math.floor(i / n), c = i % n, out = [];
+    for (let k = 0; k < n; k++) { if (k !== c) out.push(r * n + k); if (k !== r) out.push(k * n + c); }
+    return out;
+  }));
+  const relationsOf = p => E.relations(p.size, p.horizontal, p.vertical);
+  const broken = (G, s, b) => G.values[s] && G.values[b] && G.values[s] >= G.values[b];
+
+  function draw(ctx, side, G, opts, n) {
+    const c = name => Nemo.cssColor(name);
+    const cell = side / (n + (n - 1) * GAP), gap = cell * GAP, step = cell + gap;
+    const conflicts = opts.showConflicts ? G.values.map((v, i) => (v && peers(n)[i].some(p => G.values[p] === v) ? i : -1)) : [];
+    const rel = relationsOf(G.puzzle);
+    const wrong = new Set(conflicts.filter(i => i >= 0));
+    if (opts.showViolations) for (const [s, b] of rel) if (broken(G, s, b)) { wrong.add(s); wrong.add(b); }
+    const sel = G.selected, selValue = sel != null ? G.values[sel] : 0;
+    const font = (size, weight) => `${weight} ${size}px system-ui, -apple-system, sans-serif`;
+    const box = i => ({ x: (i % n) * step, y: Math.floor(i / n) * step });
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < n * n; i++) {
+      const { x, y } = box(i), given = !!G.puzzle.givens[i];
+      let fill = '--cell';
+      if (sel != null) {
+        if (i === sel) fill = '--fill-futoshiki';
+        else if (selValue && G.values[i] === selValue) fill = '--ft-same';
+        else if (Math.floor(i / n) === Math.floor(sel / n) || i % n === sel % n) fill = '--ft-related';
+      }
+      Nemo.roundRect(ctx, x, y, cell, cell, cell * 0.14);
+      ctx.fillStyle = c(fill); ctx.fill();
+      ctx.strokeStyle = c(given ? '--ink' : '--ft-line'); ctx.lineWidth = given ? 1.5 : 1; ctx.stroke();
+      const v = G.values[i];
+      if (v) {
+        ctx.fillStyle = c(wrong.has(i) && !given ? '--wrong' : given ? '--ink' : '--user');
+        ctx.font = font(cell * 0.52, given ? 600 : 400);
+        ctx.fillText(v, x + cell / 2, y + cell / 2 + cell * 0.03);
+      } else if (G.notes[i]) {
+        const cols = n <= 4 ? 2 : 3, rows = Math.ceil(n / cols);
+        ctx.font = font(cell * (n <= 4 ? 0.26 : 0.22), 500);
+        for (let d = 1; d <= n; d++) {
+          if (!(G.notes[i] & (1 << d))) continue;
+          ctx.fillStyle = c(selValue === d ? '--ink' : '--ink-soft');
+          ctx.fillText(d, x + cell * (((d - 1) % cols) + 0.5) / cols, y + cell * (Math.floor((d - 1) / cols) + 0.5) / rows + 1);
+        }
+      }
+    }
+
+    // 부등호: 뾰족한 쪽이 작은 칸을 가리키는 꺾쇠
+    const arm = gap * 0.36;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (const [s, b] of rel) {
+      const a = box(s), d = box(b);
+      const cx = (a.x + d.x) / 2 + cell / 2, cy = (a.y + d.y) / 2 + cell / 2;
+      const dx = a.x === d.x ? 0 : a.x < d.x ? -1 : 1, dy = a.y === d.y ? 0 : a.y < d.y ? -1 : 1;
+      ctx.beginPath();
+      if (dx) {
+        ctx.moveTo(cx - dx * arm, cy - arm * 1.1); ctx.lineTo(cx + dx * arm, cy); ctx.lineTo(cx - dx * arm, cy + arm * 1.1);
+      } else {
+        ctx.moveTo(cx - arm * 1.1, cy - dy * arm); ctx.lineTo(cx, cy + dy * arm); ctx.lineTo(cx + arm * 1.1, cy - dy * arm);
+      }
+      const bad = opts.showViolations && broken(G, s, b), near = opts.showGuide && (sel === s || sel === b);
+      ctx.strokeStyle = c(bad ? '--wrong' : near ? '--ft-guide' : '--ink');
+      ctx.lineWidth = near || bad ? 3 : 2.2;
+      ctx.stroke();
+    }
+  }
+
+  NumberPuzzle({
+    kind: 'futoshiki',
+    levels: E.LEVELS,
+    emptySize: 4,
+    maxWidth: 560,
+    size: p => p.size,
+    peers,
+    generate: id => E.generate(id),
+    subtitle: p => `${t(E.LEVELS[p.level - 1].name)} · ${p.size}×${p.size}`,
+    detail: l => `${l.size}×${l.size}`,
+    menuLabel: l => `${t(l.name)} · ${l.size}×${l.size}`,
+    options: [
+      { key: 'showConflicts', label: '중복 숫자 표시', default: true },
+      { key: 'showViolations', label: '부등호 위반 표시', default: true },
+      { key: 'showGuide', label: '부등호 도움말', default: true },
+    ],
+    showGuide: opts => opts.showGuide,
+    guideText: () => `<b>2 &lt; 4</b><span>${Nemo.esc(t('뾰족한 쪽이 더 작은 숫자예요. 세로도 같아요.'))}</span>`,
+    validate: p => p.size >= 2 && p.size <= 9 && [p.givens, p.solution, p.horizontal, p.vertical].every(a => a?.length === p.size * p.size),
+    progress: NumberPuzzle.progress,
+    // 칸 사이의 틈은 반씩 양쪽 칸에 붙여서, 어디를 눌러도 가까운 칸이 골라진다.
+    hit: (x, y, side, n) => {
+      const cell = side / (n + (n - 1) * GAP), step = cell * (1 + GAP);
+      if (x < 0 || y < 0 || x > side || y > side) return null;
+      const col = Math.min(n - 1, Math.floor((x + cell * GAP / 2) / step));
+      const row = Math.min(n - 1, Math.floor((y + cell * GAP / 2) / step));
+      return row * n + col;
+    },
+    draw,
+  });
+})();
+</script>
+</body>
+</html>

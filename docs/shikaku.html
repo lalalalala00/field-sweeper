@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="숫자만큼의 칸을 직사각형으로 묶는 시카쿠. 다섯 가지 난이도와 커스텀 판.">
+<meta name="theme-color" content="#f6f4ec">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="assets/paper.css">
+<style>:root { --accent: var(--fill-shikaku); }</style>
+<title>Shikaku</title>
+</head>
+<body>
+<div class="puzzle" id="app">
+  <div class="stage">
+    <div class="board-wrap empty" id="wrap"><canvas class="board" id="board" role="img"></canvas></div>
+    <div class="notice" id="notice" role="status" hidden></div>
+  </div>
+  <div class="controls wide">
+    <div class="tools">
+      <button class="tool" id="undo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span></span></button>
+      <button class="tool" id="eraser" aria-pressed="false"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 20H20"/><path d="M5.6 15.6l8.5-8.5a2 2 0 0 1 2.8 0l2 2a2 2 0 0 1 0 2.8L12 18.8a4 4 0 0 1-2.8 1.2H8.6a2 2 0 0 1-1.4-.6l-1.6-1.6a2 2 0 0 1 0-2.2z"/><path d="M10 11.2l4.8 4.8"/></svg><span></span></button>
+      <button class="tool" id="clear"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg><span></span></button>
+    </div>
+  </div>
+</div>
+<script src="assets/i18n.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/shikaku-engine.js"></script>
+<script>
+(() => {
+  // 앱의 ShikakuGame.swift와 ShikakuView.swift를 옮겼다.
+  const E = ShikakuEngine, R = E.Rect, { t, store, stats, clock } = Nemo;
+  const K = Nemo.kind('shikaku');
+  const $ = id => document.getElementById(id);
+  const app = $('app'), wrap = $('wrap'), canvas = $('board');
+  const bar = Nemo.topBar('shikaku');
+  app.prepend(bar);
+  const q = sel => bar.querySelector(sel);
+  const COLORS = 6;
+  const DOUBLE_TAP = 350;
+  let showTimer = store.get('showTimer', true);
+
+  const G = { puzzle: null, regions: [], status: 'empty', eraser: false, erasing: null, history: [],
+    counted: false, timer: new Nemo.Timer(), isNewBest: false };
+  const size = () => (G.puzzle ? G.puzzle.size : 5);
+  const level = () => E.LEVELS[(G.puzzle ? G.puzzle.level : 1) - 1];
+  const subtitle = () => (G.puzzle ? `${t(level().name)} · ${size()}×${size()}` : '');
+  const area = () => G.regions.reduce((a, r) => a + R.area(r.rect), 0);
+
+  // ── 시작·저장 ──
+  function start(puzzle, saved) {
+    G.puzzle = puzzle;
+    G.regions = saved ? saved.regions.map(r => ({ rect: { ...r.rect }, color: r.color })) : [];
+    G.history = [];
+    G.eraser = false;
+    G.erasing = null;
+    G.counted = saved ? !!saved.counted : false;
+    G.isNewBest = false;
+    G.timer = new Nemo.Timer(saved ? saved.elapsed : 0);
+    G.timer.start();
+    G.status = 'playing';
+    render();
+  }
+  function restore(s) {
+    if (!s || !s.puzzle || !Array.isArray(s.regions)) return false;
+    const n = s.puzzle.size;
+    if (!(n > 0) || s.puzzle.clues?.length !== s.puzzle.solution?.length
+      || !s.regions.every(({ rect: r }) => r && r.row >= 0 && r.col >= 0 && r.row + r.height <= n && r.col + r.width <= n)) return false;
+    start(s.puzzle, s);
+    return true;
+  }
+  function save() {
+    if (G.status !== 'playing') return;
+    store.set('shikaku.save', { puzzle: G.puzzle, regions: G.regions, elapsed: G.timer.seconds, counted: G.counted, savedAt: Date.now() });
+  }
+
+  // ── 영역 ──
+  const clueAt = i => G.puzzle?.clues.find(c => c.index === i);
+  const regionAt = i => G.regions.find(r => R.containsIndex(r.rect, i, size()));
+
+  // 규칙상 놓을 수 있는지만 본다. 정답 위치인지는 확인하지 않는다.
+  function problem(rect) {
+    const n = size();
+    if (G.regions.some(r => R.intersects(r.rect, rect))) return t('다른 영역과 겹쳐요');
+    const inside = G.puzzle.clues.filter(c => R.containsIndex(rect, c.index, n));
+    if (!inside.length) return t('영역 안에 숫자가 하나 있어야 해요');
+    if (inside.length > 1) return t('영역 안에 숫자는 하나만 들어가야 해요');
+    if (inside[0].area !== R.area(rect)) return t('{0}칸이 필요해요. 지금은 {1}칸이에요', inside[0].area, R.area(rect));
+    return null;
+  }
+  function add(rect) {
+    if (G.status !== 'playing') return null;
+    const p = problem(rect);
+    if (p) return p;
+    const region = { rect, color: colorFor(rect) };
+    G.regions.push(region);
+    G.history.push({ type: 'add', regions: [region] });
+    if (!G.counted) { G.counted = true; stats.recordStart('shikaku'); }
+    checkWin();
+    return null;
+  }
+  const removeRegion = region => { G.regions = G.regions.filter(r => !R.equal(r.rect, region.rect)); };
+  function removeAt(i) {
+    const region = regionAt(i);
+    if (G.status !== 'playing' || !region) return;
+    removeRegion(region);
+    G.history.push({ type: 'remove', regions: [region] });
+  }
+  function clearAll() {
+    if (G.status !== 'playing' || !G.regions.length) return;
+    G.history.push({ type: 'clear', regions: G.regions });
+    G.regions = [];
+    render(); save();
+  }
+  function undo() {
+    const last = G.status === 'playing' && G.history.pop();
+    if (!last) return;
+    if (last.type === 'add') removeRegion(last.regions[0]);
+    else if (last.type === 'remove') G.regions.push(...last.regions);
+    else G.regions = last.regions;
+    render(); save();
+  }
+
+  // 맞닿은 영역과 다른 색 중에서 가장 덜 쓴 색. 남는 색이 없을 때만 이웃 영역의 색을 옮겨 자리를 만든다.
+  function colorFor(rect) {
+    const usage = new Array(COLORS).fill(0);
+    G.regions.forEach(r => usage[r.color]++);
+    const byUsage = [...Array(COLORS).keys()].sort((a, b) => usage[a] - usage[b]);
+    const neighbors = new Set(G.regions.filter(r => R.touches(r.rect, rect)).map(r => r.color));
+    const free = byUsage.find(c => !neighbors.has(c));
+    if (free != null) return free;
+    for (const c of byUsage) {
+      const blockers = G.regions.map((r, k) => k).filter(k => G.regions[k].color === c && R.touches(G.regions[k].rect, rect));
+      const moves = [];
+      for (const k of blockers) {
+        const around = new Set(G.regions.filter(r => !R.equal(r.rect, G.regions[k].rect) && R.touches(r.rect, G.regions[k].rect)).map(r => r.color));
+        moves.filter(([j]) => R.touches(G.regions[j].rect, G.regions[k].rect)).forEach(([, to]) => around.add(to));
+        const to = byUsage.find(x => x !== c && !around.has(x));
+        if (to == null) break;
+        moves.push([k, to]);
+      }
+      if (moves.length === blockers.length) { moves.forEach(([k, to]) => { G.regions[k].color = to; }); return c; }
+    }
+    return byUsage[0];
+  }
+
+  function checkWin() {
+    if (area() !== size() * size()) return;
+    G.timer.pause();
+    G.status = 'won';
+    G.eraser = false;
+    store.set('shikaku.save', null);
+    G.isNewBest = stats.recordWin('shikaku', level().name, Math.round(G.timer.seconds));
+    setTimeout(() => { if (G.status === 'won') showResult(); }, 400);
+  }
+
+  // ── 화면 ──
+  const tools = { undo: $('undo'), eraser: $('eraser'), clear: $('clear') };
+  function render() {
+    q('[data-sub]').textContent = subtitle();
+    q('[data-pause]').disabled = G.status !== 'playing';
+    wrap.classList.toggle('empty', G.status === 'empty');
+    const playing = G.status === 'playing';
+    tools.undo.disabled = !playing || !G.history.length;
+    tools.eraser.disabled = !playing;
+    tools.eraser.setAttribute('aria-pressed', G.eraser);
+    tools.eraser.querySelector('span').textContent = t(G.eraser ? '지우개 켜짐' : '지우개');
+    tools.clear.disabled = !playing || !G.regions.length;
+    tick();
+    draw();
+  }
+  function tick() {
+    const show = showTimer && G.status === 'playing';
+    q('[data-timer]').hidden = !show;
+    if (show) q('[data-time]').textContent = clock(Math.floor(G.timer.seconds));
+  }
+  setInterval(tick, 250);
+
+  let noticeTimer = null;
+  function notice(text) {
+    $('notice').textContent = text;
+    $('notice').hidden = false;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => { $('notice').hidden = true; }, 1800);
+  }
+
+  // 그리는 중인 영역과, 한 번 탭해서 '한 번 더 누르면 지워지는' 영역
+  let dragStart = null, dragEnd = null, armed = null, side = 0;
+  const preview = () => (dragStart != null && dragEnd != null ? R.spanning(dragStart, dragEnd, size()) : null);
+
+  function draw() {
+    const w = Math.min(wrap.clientWidth, wrap.clientHeight, 600);
+    if (w <= 0) return;
+    side = Math.floor(w);
+    const ctx = Nemo.fitCanvas(canvas, side, side), c = name => Nemo.cssColor(name);
+    const n = size(), cell = side / n;
+    const frame = r => [r.col * cell, r.row * cell, r.width * cell, r.height * cell];
+    ctx.save();
+    Nemo.roundRect(ctx, 0, 0, side, side, 6);
+    ctx.clip();
+    ctx.fillStyle = c('--cell');
+    ctx.fillRect(0, 0, side, side);
+    ctx.beginPath();
+    for (let k = 1; k < n; k++) {
+      const p = Math.round(k * cell) + 0.5;
+      ctx.moveTo(p, 0); ctx.lineTo(p, side); ctx.moveTo(0, p); ctx.lineTo(side, p);
+    }
+    ctx.strokeStyle = c('--sk-thin'); ctx.lineWidth = 1; ctx.stroke();
+
+    const radius = Math.min(6, cell * 0.18);
+    for (const region of G.regions) {
+      const [x, y, w2, h] = frame(region.rect);
+      Nemo.roundRect(ctx, x + 1.5, y + 1.5, w2 - 3, h - 3, radius);
+      ctx.fillStyle = c('--sk' + ((region.color % COLORS) + 1)); ctx.fill();
+      ctx.strokeStyle = c('--ink'); ctx.lineWidth = armed && R.equal(armed.rect, region.rect) ? 3 : 1.5; ctx.stroke();
+    }
+    const pv = preview();
+    if (pv) {
+      const [x, y, w2, h] = frame(pv);
+      Nemo.roundRect(ctx, x + 1.5, y + 1.5, w2 - 3, h - 3, radius);
+      ctx.globalAlpha = 0.55; ctx.fillStyle = c('--fill-shikaku'); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = c('--ink');
+    ctx.font = `600 ${cell * 0.5}px system-ui, -apple-system, sans-serif`;
+    for (const clue of G.puzzle?.clues || []) {
+      ctx.fillText(clue.area, (clue.index % n + 0.5) * cell, (Math.floor(clue.index / n) + 0.5) * cell + cell * 0.03);
+    }
+    if (pv) {
+      // 지금 그리는 영역의 크기를 모서리에 작게 보여준다.
+      const [x, y, w2] = frame(pv);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.font = `700 ${Math.max(11, cell * 0.28)}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(`${pv.height}×${pv.width}=${R.area(pv)}`, x + w2 - 4, y + 3);
+    }
+    ctx.restore();
+    Nemo.roundRect(ctx, 1, 1, side - 2, side - 2, 6);
+    ctx.strokeStyle = c('--ink'); ctx.lineWidth = 2; ctx.stroke();
+    canvas.setAttribute('aria-label', `${K.title} · ${t('{0}% 채움', Math.round(area() / (n * n) * 100))}`);
+  }
+  new ResizeObserver(draw).observe(wrap);
+  Nemo.onTheme(draw);
+
+  // ── 판 입력: 끌어서 직사각형, 같은 영역 두 번 탭으로 지우기, 지우개로 문지르기 ──
+  const pointAt = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  function indexAt(p, clamp = false) {
+    const n = size(), cell = side / n;
+    let c = Math.floor(p.x / cell), r = Math.floor(p.y / cell);
+    if (clamp) { c = Math.min(Math.max(c, 0), n - 1); r = Math.min(Math.max(r, 0), n - 1); }
+    return c >= 0 && c < n && r >= 0 && r < n ? r * n + c : null;
+  }
+  let lastErase = null, pointer = null;
+  function rub(p) {
+    if (!lastErase) G.erasing = [];
+    const from = lastErase || p, step = side / size() / 2;
+    const count = Math.max(1, Math.floor(Math.hypot(p.x - from.x, p.y - from.y) / step));
+    for (let k = 0; k <= count; k++) {
+      const i = indexAt({ x: from.x + (p.x - from.x) * k / count, y: from.y + (p.y - from.y) * k / count });
+      const region = i != null && regionAt(i);
+      if (region) { removeRegion(region); G.erasing.push(region); }
+    }
+    lastErase = p;
+    render();
+  }
+  canvas.addEventListener('pointerdown', e => {
+    if (G.status !== 'playing' || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    canvas.setPointerCapture(e.pointerId);
+    pointer = e.pointerId;
+    const p = pointAt(e);
+    if (G.eraser) { rub(p); return; }
+    dragStart = indexAt(p);
+    dragEnd = dragStart;
+    draw();
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (e.pointerId !== pointer || G.status !== 'playing') return;
+    const p = pointAt(e);
+    if (G.eraser) { rub(p); return; }
+    if (dragStart == null) return;
+    const i = indexAt(p, true);
+    if (i !== dragEnd) { dragEnd = i; draw(); }
+  });
+  const end = e => {
+    if (e.pointerId !== pointer) return;
+    pointer = null;
+    if (lastErase) {
+      if (G.erasing?.length) G.history.push({ type: 'remove', regions: G.erasing });
+      G.erasing = null; lastErase = null;
+      render(); save();
+    } else finish(e.type === 'pointercancel');
+  };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+
+  function finish(cancelled) {
+    const a = dragStart, b = dragEnd;
+    dragStart = dragEnd = null;
+    if (cancelled || G.status !== 'playing' || a == null || b == null) { draw(); return; }
+    if (a === b) {
+      // 탭: 같은 영역을 빠르게 두 번 누르면 지운다. 1칸짜리 숫자는 한 번에 영역이 된다.
+      const region = regionAt(a);
+      if (region) {
+        if (armed && R.equal(armed.rect, region.rect) && Date.now() - armed.at < DOUBLE_TAP) {
+          removeAt(a);
+          armed = null;
+        } else {
+          const mark = { rect: region.rect, at: Date.now() };
+          armed = mark;
+          setTimeout(() => { if (armed === mark) { armed = null; draw(); } }, DOUBLE_TAP);
+        }
+      } else if (clueAt(a)?.area === 1) add(R.spanning(a, a, size()));
+    } else {
+      const p = add(R.spanning(a, b, size()));
+      if (p) notice(p);
+    }
+    render(); save();
+  }
+
+  function toggleEraser() {
+    if (G.status !== 'playing') return;
+    G.eraser = !G.eraser;
+    if (G.eraser) notice(t('지울 영역을 탭하거나 문질러 주세요'));
+    render();
+  }
+  tools.undo.onclick = undo;
+  tools.eraser.onclick = toggleEraser;
+  tools.clear.onclick = () => {
+    G.timer.pause();
+    Nemo.confirmBox({ title: t('영역을 모두 지울까요?'), message: t('되돌리기로 다시 살릴 수 있어요.'), ok: t('모두 지우기'),
+      onOk: () => { clearAll(); G.timer.start(); }, onCancel: () => G.timer.start() });
+  };
+  document.addEventListener('keydown', e => {
+    if (G.status !== 'playing' || Nemo.isOpen()) return;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+    else if (!e.metaKey && !e.ctrlKey && (e.key === 'e' || e.key === 'E')) toggleEraser();
+  });
+
+  // ── 겹쳐 보이는 창 ──
+  const time = () => (showTimer ? clock(Math.round(G.timer.seconds)) : null);
+  const customSize = () => Math.min(Math.max(store.get('shikaku.customSize', 10), E.CUSTOM_SIZES[0]), E.CUSTOM_SIZES[1]);
+  const customRegion = () => E.REGION_SIZES[store.get('shikaku.customRegion', 1)] || E.REGION_SIZES[1];
+  const customDetail = () => `${customSize()}×${customSize()} · ${t(customRegion().name)}`;
+
+  function showLevels() {
+    G.timer.pause();
+    const best = stats.load('shikaku').bestByDifficulty;
+    Nemo.levelPicker({
+      items: E.LEVELS.map(l => ({ id: l.id, name: t(l.name), detail: l.id === 5 ? customDetail() : `${l.size}×${l.size}`, best: best[l.name] })),
+      current: store.get('shikaku.lastLevel', 2), canCancel: G.status !== 'empty',
+      onPick: id => (id === 5 ? showCustom() : newPuzzle(id)),
+      onCancel: () => { if (G.status === 'empty') location.href = './'; else G.timer.start(); },
+    });
+  }
+  function showCustom() {
+    G.timer.pause();
+    let n = customSize(), region = customRegion().id;
+    const el = Nemo.overlay(`<div class="card wide" role="dialog" aria-modal="true" aria-labelledby="cuTitle" style="gap:18px">
+      <h3 id="cuTitle">${t('커스텀')}</h3>
+      <div class="field-row"><b>${t('판 크기')}</b><div class="stepper"><button data-minus aria-label="−">−</button><output data-size></output><button data-plus aria-label="+">+</button></div></div>
+      <div style="display:flex;flex-direction:column;gap:8px"><b style="font-weight:500">${t('영역 크기')}</b>
+        <div class="segmented" role="group" aria-label="${t('영역 크기')}">${E.REGION_SIZES.map(r => `<button data-r="${r.id}">${t(r.name)}</button>`).join('')}</div>
+        <p class="hint">${t('영역이 클수록 숫자가 적고 경우의 수가 많아져요')}</p></div>
+      <div class="actions"><button class="btn" data-cancel>${t('취소')}</button><button class="btn primary" data-start data-focus>${t('이 크기로 시작')}</button></div></div>`);
+    const sync = () => {
+      el.querySelector('[data-size]').textContent = `${n}×${n}`;
+      el.querySelector('[data-minus]').disabled = n <= E.CUSTOM_SIZES[0];
+      el.querySelector('[data-plus]').disabled = n >= E.CUSTOM_SIZES[1];
+      el.querySelectorAll('[data-r]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.r === region));
+    };
+    el.querySelector('[data-minus]').onclick = () => { n = Math.max(E.CUSTOM_SIZES[0], n - 1); store.set('shikaku.customSize', n); sync(); };
+    el.querySelector('[data-plus]').onclick = () => { n = Math.min(E.CUSTOM_SIZES[1], n + 1); store.set('shikaku.customSize', n); sync(); };
+    el.querySelectorAll('[data-r]').forEach(b => { b.onclick = () => { region = +b.dataset.r; store.set('shikaku.customRegion', region); sync(); }; });
+    el.querySelector('[data-cancel]').onclick = () => { Nemo.close(); if (G.status === 'empty') showLevels(); else G.timer.start(); };
+    el.querySelector('[data-start]').onclick = () => newPuzzle(5);
+    sync();
+  }
+  function newPuzzle(id) {
+    store.set('shikaku.lastLevel', id);
+    G.timer.pause();
+    const spec = E.LEVELS[id - 1];
+    // 커스텀이면 고른 크기, 아니면 난이도 기본값. 같은 퍼즐을 '새 퍼즐'로 다시 만들 때도 지금 설정을 쓴다.
+    const n = id === 5 ? customSize() : spec.size;
+    const maxArea = id === 5 ? customRegion().maxArea(n) : spec.maxArea;
+    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(spec.name)));
+    setTimeout(() => {
+      const puzzle = E.generate(id, n, maxArea);
+      store.set('shikaku.save', null);
+      Nemo.close();
+      start(puzzle);
+      save();
+    }, 40);
+  }
+  function pause() {
+    if (G.status !== 'playing' || Nemo.isOpen()) return;
+    G.timer.pause();
+    save();
+    Nemo.pauseCover({ subtitle: subtitle(), time: time(), onResume: () => G.timer.start() });
+  }
+  function showResult() {
+    Nemo.result({ title: t('{0} 완성', K.title), subtitle: subtitle(), time: time(), isNewBest: G.isNewBest,
+      onClose: () => {}, onOther: showLevels, onAgain: () => newPuzzle(G.puzzle.level) });
+  }
+
+  q('[data-pause]').onclick = pause;
+  q('[data-back]').addEventListener('click', save);
+  Nemo.menu(q('[data-more]'), q('[data-menu]'), () => [
+    { section: t('새 퍼즐') },
+    ...E.LEVELS.slice(0, 4).map(l => ({ label: `${t(l.name)} · ${l.size}×${l.size}`, onClick: () => newPuzzle(l.id) })),
+    { label: t('커스텀'), onClick: showCustom },
+    { sep: true },
+    { label: t('처음부터 다시'), icon: 'restart', disabled: G.status !== 'playing', onClick: () => {
+      G.timer.pause();
+      Nemo.confirmBox({ title: t('처음부터 다시 풀까요?'), message: t('같은 문제를 처음 상태로 되돌려요.'), ok: t('다시 풀기'),
+        onOk: () => { start(G.puzzle); save(); }, onCancel: () => G.timer.start() });
+    } },
+  ]);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+  window.addEventListener('pagehide', save);
+
+  document.title = `${K.title} · ${t('네모 안에 네모')}`;
+  tools.undo.querySelector('span').textContent = t('되돌리기');
+  tools.clear.querySelector('span').textContent = t('전체 지우기');
+  if (!restore(store.get('shikaku.save', null))) { render(); showLevels(); }
+})();
+</script>
+</body>
+</html>
