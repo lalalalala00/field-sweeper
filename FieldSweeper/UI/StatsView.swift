@@ -42,9 +42,7 @@ private struct StatsCard: View {
                 HStack(spacing: 8) {
                     GameSymbol(kind: kind, size: 17, color: Color(kind.text))
                         .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
-                    Text(verbatim: kind.title)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(Color(kind.text))
+                    GameName(kind: kind, color: Color(kind.text))
                 }
                 Spacer()
                 Text(verbatim: kind.number)

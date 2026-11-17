@@ -163,6 +163,24 @@ final class FutoshikiGame {
         notes[i] = 0
     }
 
+    /// 내가 넣은 숫자나 메모가 있는지.
+    var hasEntries: Bool { values.indices.contains { !isGiven($0) && (values[$0] != 0 || notes[$0] != 0) } }
+
+    /// 내가 넣은 숫자와 메모를 모두 지운다. 주어진 숫자는 그대로이고, 되돌리기 한 번으로 살릴 수 있다.
+    func clearAll() {
+        guard status == .playing else { return }
+        let changes = values.indices
+            .filter { !isGiven($0) && (values[$0] != 0 || notes[$0] != 0) }
+            .map { Change(index: $0, value: values[$0], notes: notes[$0]) }
+        guard !changes.isEmpty else { return }
+        history.append(changes)
+        for c in changes {
+            values[c.index] = 0
+            notes[c.index] = 0
+        }
+        selected = nil
+    }
+
     func undo() {
         guard canUndo, let last = history.popLast() else { return }
         undosUsed += 1

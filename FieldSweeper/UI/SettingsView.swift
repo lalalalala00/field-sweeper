@@ -4,6 +4,8 @@ struct SettingsView: View {
     let current: BoardConfig
     let device: DeviceClass
     let onStart: (BoardConfig) -> Void
+    /// 규칙 보기를 누르면 설정을 닫고 규칙 창을 연다.
+    var onRules: (() -> Void)?
 
     @State private var cols: Double
     @State private var rows: Double
@@ -11,9 +13,10 @@ struct SettingsView: View {
     @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.dismiss) private var dismiss
 
-    init(current: BoardConfig, device: DeviceClass, onStart: @escaping (BoardConfig) -> Void) {
+    init(current: BoardConfig, device: DeviceClass, onRules: (() -> Void)? = nil, onStart: @escaping (BoardConfig) -> Void) {
         self.current = current
         self.device = device
+        self.onRules = onRules
         self.onStart = onStart
         let c = Persist.customConfig ?? current
         _cols = State(initialValue: Double(min(max(c.cols, 5), device.limits.cols)))
@@ -83,6 +86,25 @@ struct SettingsView: View {
 
                     sectionLabel("필드 색").padding(.top, 6)
                     FieldColorSection()
+
+                    if let onRules {
+                        Button(action: onRules) {
+                            HStack {
+                                Label("규칙 보기", systemImage: "questionmark.circle")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color(Palette.inkSoft))
+                            }
+                            .font(.subheadline.weight(.medium))
+                            .padding(14)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .background(Color(Palette.bg), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(Palette.line)))
+                        .padding(.top, 12)
+                    }
                 }
                 .padding(20)
                 // tr()로 옮긴 문구도 언어가 바뀌면 다시 그린다. 슬라이더 값은 이 뷰의 상태라 유지된다.

@@ -87,6 +87,38 @@ enum NewGameCards {
     static let starText = UIColor.dynamic(0xffffff, 0xf2f6ee)
 }
 
+/// 웹(docs/assets/paper.css)과 같은 게임 그림 색.
+enum PuzzleColors {
+    static let cell = UIColor.dynamic(0xfbfaf5, 0x1b1f1a)
+    static let thin = UIColor.dynamic(0xd9d5c3, 0x343b32)
+    static let user = UIColor.dynamic(0x3d67b0, 0x93b2ff)
+    static let wrong = UIColor.dynamic(0xc54a38, 0xff8a78)
+
+    /// 짝네모 길 색(별네모 구역 색으로도 쓴다).
+    static let paths: [UIColor] = [
+        .dynamic(0xc8743d, 0xe6a57a), .dynamic(0xb08a2e, 0xdcc07a), .dynamic(0x8a68bd, 0xb89be0),
+        .dynamic(0x3e9a90, 0x7fcfc5), .dynamic(0xc45f78, 0xe094a6), .dynamic(0x5f9a4c, 0x9cc988),
+        .dynamic(0x4f7fc0, 0x8fb0e6), .dynamic(0x8f6243, 0xc9a183), .dynamic(0xb04fa8, 0xe08fd8),
+        .dynamic(0x66798a, 0xa9b8c6),
+    ]
+
+    // 거울네모
+    static let beam = UIColor.dynamic(0xe39a2b, 0xffc861)
+    static let mirrorTint = UIColor.dynamic(0xe2d5e0, 0x3e3342)
+    static let mirrorFixed = UIColor.dynamic(0xe4e0d3, 0x262b24)
+
+    // 스위치네모
+    static let lampOff = UIColor.dynamic(0xcdc8b8, 0x232821)
+    static let lampRing = UIColor.dynamic(0x8f8a7a, 0x56604f)
+    static let lampOn = UIColor.dynamic(0xf6dd88, 0xd2ae52)
+    static let lampCore = UIColor.dynamic(0xfffaf0, 0xfff3cf)
+    static let lampGlow = UIColor.dynamic(0xffcd50, 0xffcd64)
+
+    // 셈네모
+    static let calcRelated = UIColor.dynamic(0xefece3, 0x22261f)
+    static let calcSame = UIColor.dynamic(0xddd8c9, 0x363a31)
+}
+
 extension Color {
     init(_ ui: UIColor) { self.init(uiColor: ui) }
 }

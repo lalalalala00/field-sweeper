@@ -32,6 +32,13 @@ enum StatsStore {
         update(kind) { $0.plays += 1 }
     }
 
+    /// 완성을 기록하고, 그 난이도의 최고 기록을 새로 세웠으면 true.
+    static func recordWinIsBest(_ kind: GameKind, difficulty: String, seconds: Int) -> Bool {
+        let previous = load(kind).bestByDifficulty[difficulty]
+        recordWin(kind, difficulty: difficulty, seconds: seconds)
+        return previous.map { seconds < $0 } ?? true
+    }
+
     static func recordWin(_ kind: GameKind, difficulty: String, seconds: Int) {
         update(kind) { stats in
             stats.completions += 1

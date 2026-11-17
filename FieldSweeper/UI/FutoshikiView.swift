@@ -18,8 +18,10 @@ struct FutoshikiView: View {
     @State private var showLevels = false
     @State private var isPaused = false
     @State private var showResult = false
-    @State private var confirmRestart = false
     @State private var didStart = false
+    @State private var showRules = false
+    @State private var confirmNew = false
+    @State private var confirmClearAll = false
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage("futoshiki.showConflicts") private var showConflicts = true
     @AppStorage("futoshiki.showViolations") private var showViolations = true
@@ -42,8 +44,12 @@ struct FutoshikiView: View {
                          isPlaying: game.status == .playing,
                          elapsed: game.elapsed(at:),
                          onBack: { dismiss() },
-                         onPause: pauseGame) { menu }
+                         onPause: pauseGame,
+                         onNew: newTapped) { menu }
                 .id(language)
+            // 상단 바 바로 아래 왼쪽. 판은 그 아래 남은 공간의 가운데에 놓인다.
+            StartOverButton(enabled: game.status == .playing && game.hasEntries) { confirmClearAll = true }
+                .frame(maxWidth: 560)
             Spacer(minLength: 0)
             FutoshikiBoard(game: game, showConflicts: showConflicts,
                            showViolations: showViolations, showGuide: showGuide, handwriting: handwriting)
@@ -70,13 +76,14 @@ struct FutoshikiView: View {
         .animation(.easeOut(duration: 0.2), value: isPaused)
         .animation(.easeOut(duration: 0.2), value: showResult)
         .animation(.easeOut(duration: 0.2), value: showLevels)
+        .animation(.easeOut(duration: 0.2), value: showRules)
         .animation(.easeOut(duration: 0.2), value: generating)
         .onPencilModeSwitch { game.noteMode.toggle() }
         .onAppear {
             guard !didStart else { return }
             didStart = true
-            if let saved = FutoshikiSave.load(), game.restore(saved) { return }
-            showLevels = true
+            // 처음 들어온 게임이면 규칙부터 보여주고, 닫은 뒤에 이어하기나 난이도 고르기로 간다.
+            if RulesSeen.check(.futoshiki) { begin() } else { showRules = true }
         }
         .onChange(of: game.status) { _, status in
             guard status == .won else { return }
@@ -88,25 +95,31 @@ struct FutoshikiView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                if !isPaused && !showLevels { game.resume() }
+                if !isPaused && !showLevels && !showRules && !confirmNew { game.resume() }
             } else {
                 game.pause()
                 FutoshikiSave.save(game.snapshot())
                 if game.status == .playing { isPaused = true }
             }
         }
-        .onChange(of: showLevels) { _, open in
+        .onChange(of: showLevels || showRules || confirmNew) { _, open in
             if open { game.pause() } else if !isPaused { game.resume() }
         }
         .onDisappear {
             game.pause()
             if game.status == .playing { FutoshikiSave.save(game.snapshot()) }
         }
-        .alert("처음부터 다시 풀까요?", isPresented: $confirmRestart) {
+        .alert("처음부터 다시 풀까요?", isPresented: $confirmClearAll) {
             Button("취소", role: .cancel) {}
-            Button("다시 풀기", role: .destructive) { game.restart() }
+            Button("다시 풀기", role: .destructive) { game.clearAll() }
         } message: {
-            Text("같은 문제를 처음 상태로 되돌려요.")
+            Text("되돌리기로 다시 살릴 수 있어요.")
+        }
+        .alert("새 게임을 시작할까요?", isPresented: $confirmNew) {
+            Button("취소", role: .cancel) {}
+            Button("새 퍼즐", role: .destructive) { newPuzzle(game.level) }
+        } message: {
+            Text("지금 하던 게임은 사라져요.")
         }
         .environment(\.locale, language == "system" ? .current : Locale(identifier: language))
     }
@@ -117,10 +130,6 @@ struct FutoshikiView: View {
                 Button("\(tr(level.name)) · \(level.size)×\(level.size)") { newPuzzle(level) }
             }
         }
-        Button { confirmRestart = true } label: {
-            Label("처음부터 다시", systemImage: "arrow.counterclockwise")
-        }
-        .disabled(game.status != .playing)
         Section("표시") {
             Toggle("중복 숫자 표시", isOn: $showConflicts)
             Toggle("부등호 위반 표시", isOn: $showViolations)
@@ -130,6 +139,10 @@ struct FutoshikiView: View {
             Section("입력") {
                 Toggle("펜슬로 숫자 쓰기", isOn: $handwriting)
             }
+        }
+        Divider()
+        Button { showRules = true } label: {
+            Label("규칙 보기", systemImage: "questionmark.circle")
         }
     }
 
@@ -175,7 +188,16 @@ struct FutoshikiView: View {
 
     @ViewBuilder private var overlay: some View {
         let time = showTimer ? clock(Int(game.elapsed(at: .now).rounded())) : nil
-        if let level = generating {
+        if showRules {
+            RulesCard(kind: .futoshiki) {
+                showRules = false
+                if !RulesSeen.check(.futoshiki) {
+                    RulesSeen.mark(.futoshiki)
+                    begin()
+                }
+            }
+            .transition(.opacity)
+        } else if let level = generating {
             PuzzleWorkingCard(text: String(localized: "\(tr(level.name)) 퍼즐을 만들고 있어요", bundle: AppLanguage.bundle))
                 .transition(.opacity)
         } else if showLevels {
@@ -220,6 +242,19 @@ struct FutoshikiView: View {
             isPaused = false
             showResult = false
         }
+    }
+
+    /// 상단 '새 퍼즐': 지금 난이도로 새 판. 손댄 판이 있으면 먼저 묻고, 아직 판이 없으면 난이도를 고르게 한다.
+    private func newTapped() {
+        guard generating == nil else { return }
+        guard game.status != .empty else { showLevels = true; return }
+        if game.status == .playing && game.counted { confirmNew = true } else { newPuzzle(game.level) }
+    }
+
+    /// 저장된 판이 있으면 이어서, 없으면 난이도를 고르게 한다.
+    private func begin() {
+        if let saved = FutoshikiSave.load(), game.restore(saved) { return }
+        showLevels = true
     }
 
     private func pauseGame() {

@@ -5,14 +5,14 @@ struct ContentView: View {
     @State private var game: Game
     @State private var mode: TapMode = .open
     @State private var showSettings = false
+    /// 처음 들어오면 규칙을 한 번 보여준다. 설정의 '규칙 보기'로 다시 볼 수 있다.
+    @State private var showRules = !RulesSeen.check(.minesweeper)
     @State private var showResult = false
     @State private var boardSize: CGSize = .zero
     @State private var didStart = false
     @State private var pendingResume: GameSnapshot?
     @State private var isPaused = false
     @State private var confirmRestart = false
-    @State private var toast: String?
-    @State private var toastID = UUID()
     @AppStorage("showTimer") private var showTimer = true
     @AppStorage(AppLanguage.storageKey) private var language = "system"
     @Environment(\.scenePhase) private var scenePhase
@@ -27,11 +27,10 @@ struct ContentView: View {
             TopPanel(game: game,
                      showTimer: showTimer,
                      mode: $mode,
-                     canSave: game.status == .playing && pendingResume == nil,
+                     canPause: game.status == .playing && pendingResume == nil,
                      onBack: { dismiss() },
                      onRestart: askRestart,
                      onPause: pauseGame,
-                     onSave: saveNow,
                      onSettings: { showSettings = true })
             // tr()로 옮긴 문구(난이도 이름 등)도 언어가 바뀌면 다시 그린다.
             .id(language)
@@ -62,7 +61,13 @@ struct ContentView: View {
         .background(Color(Palette.bg).ignoresSafeArea())
         .foregroundStyle(Color(Palette.ink))
         .overlay {
-            if let saved = pendingResume {
+            if showRules {
+                RulesCard(kind: .minesweeper) {
+                    showRules = false
+                    RulesSeen.mark(.minesweeper)
+                }
+                .transition(.opacity)
+            } else if let saved = pendingResume {
                 ResumeCard(snapshot: saved, showTimer: showTimer, onNew: {
                     pendingResume = nil
                     start(game.config)
@@ -84,21 +89,21 @@ struct ContentView: View {
             mode = mode == .open ? .flag : .open
         }
         .animation(.easeOut(duration: 0.2), value: showResult)
-        .animation(.easeOut(duration: 0.2), value: isPaused)
-        .overlay(alignment: .bottom) {
-            if let toast {
-                Label(toast, systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color(Palette.onMoss))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .background(Color(Palette.moss), in: Capsule())
-                    .padding(.bottom, 24)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+        .animation(.easeOut(duration: 0.2), value: showRules)
+        // 규칙을 보는 동안은 시간을 멈춘다.
+        .onChange(of: showRules) { _, open in
+            if open { game.pause() } else if !isPaused && !showSettings { game.resume() }
         }
+        .animation(.easeOut(duration: 0.2), value: isPaused)
         .sheet(isPresented: $showSettings) {
-            SettingsView(current: game.config, device: device) { config in
+            SettingsView(current: game.config, device: device, onRules: {
+                showSettings = false
+                // 시트가 내려간 뒤에 규칙 창을 띄운다.
+                Task {
+                    try? await Task.sleep(for: .milliseconds(350))
+                    showRules = true
+                }
+            }) { config in
                 showSettings = false
                 start(config)
             }
@@ -176,19 +181,6 @@ struct ContentView: View {
         isPaused = false
         game.resume()
     }
-
-    private func saveNow() {
-        guard let snapshot = game.snapshot() else { return }
-        SaveStore.save(snapshot)
-        Haptics.play(.flag)
-        let id = UUID()
-        toastID = id
-        withAnimation(.spring(duration: 0.3)) { toast = tr("저장했어요. 다음에 열면 이어서 할 수 있어요") }
-        Task {
-            try? await Task.sleep(for: .seconds(2.2))
-            if toastID == id { withAnimation(.easeOut(duration: 0.25)) { toast = nil } }
-        }
-    }
 }
 
 /// 상단 패널: 이름·난이도, 열기/깃발, 남은 지뢰, 시간, 새 게임, 일시정지, 더보기(저장·설정).
@@ -196,12 +188,15 @@ struct TopPanel: View {
     let game: Game
     let showTimer: Bool
     @Binding var mode: TapMode
-    let canSave: Bool
+    let canPause: Bool
     let onBack: () -> Void
     let onRestart: () -> Void
     let onPause: () -> Void
-    let onSave: () -> Void
     let onSettings: () -> Void
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    /// 폭이 좁은 iPhone에서는 버튼과 간격을 줄여 이름이 꺾이지 않게 한다.
+    private var compact: Bool { sizeClass == .compact }
 
     /// 한 줄에 다 들어가면 한 줄(iPad 가로·세로, 가로로 눕힌 iPhone), 모자라면 두 줄.
     var body: some View {
@@ -214,16 +209,16 @@ struct TopPanel: View {
                 stats
                 restartButton.padding(.leading, 8)
                 pauseButton
-                moreMenu
+                settingsButton
             }
 
             VStack(spacing: 6) {
-                HStack(spacing: 12) {
+                HStack(spacing: compact ? 8 : 12) {
                     backButton
                     brand.layoutPriority(1)
                     Spacer(minLength: 0)
                     stats
-                    moreMenu
+                    settingsButton
                 }
                 HStack(spacing: 6) {
                     modeToggle
@@ -253,12 +248,14 @@ struct TopPanel: View {
             Text("\(tr(game.config.name)) · \(game.cols)×\(game.rows)")
                 .font(.caption2)
                 .foregroundStyle(Color(Palette.inkSoft))
-                .lineLimit(1)
         }
+        // 폭이 모자라면 꺾이지 않고 살짝 작아진다.
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
 
     private var stats: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: compact ? 8 : 12) {
             stat("flag", pad3(game.minesLeft))
                 .accessibilityLabel("남은 지뢰 \(game.minesLeft)개")
             if showTimer {
@@ -271,15 +268,10 @@ struct TopPanel: View {
         }
     }
 
-    private var moreMenu: some View {
-        Menu {
-            Button(action: onSave) { Label("저장", systemImage: "square.and.arrow.down") }
-                .disabled(!canSave)
-            Button(action: onSettings) { Label("설정", systemImage: "slider.horizontal.3") }
-        } label: {
-            square(Image(systemName: "ellipsis"))
-        }
-        .accessibilityLabel("더보기")
+    private var settingsButton: some View {
+        Button(action: onSettings) { square(Image(systemName: "slider.horizontal.3")) }
+            .buttonStyle(.plain)
+            .accessibilityLabel("설정")
     }
 
     private var modeToggle: some View {
@@ -312,8 +304,8 @@ struct TopPanel: View {
     private var pauseButton: some View {
         Button(action: onPause) { square(Image(systemName: "pause.circle")) }
             .buttonStyle(.plain)
-            .disabled(!canSave)
-            .opacity(canSave ? 1 : 0.4)
+            .disabled(!canPause)
+            .opacity(canPause ? 1 : 0.4)
             .accessibilityLabel("일시정지")
     }
 
@@ -331,7 +323,7 @@ struct TopPanel: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Color(Palette.inkSoft))
             Text(value)
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: compact ? 17 : 19, weight: .medium))
                 .monospacedDigit()
         }
         // 숫자가 두 줄로 꺾이지 않게 한다.
@@ -343,8 +335,9 @@ struct TopPanel: View {
         image
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Color(ink))
-            .frame(width: 44, height: 38)
+            .frame(width: compact ? 40 : 44, height: 38)
             .background(Color(fill), in: RoundedRectangle(cornerRadius: 11))
+            .contentShape(Rectangle().inset(by: -3))
     }
 
     /// title이 없으면 아이콘만 보여준다.

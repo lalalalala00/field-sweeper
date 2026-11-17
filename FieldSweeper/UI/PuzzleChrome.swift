@@ -12,11 +12,16 @@ struct PuzzleTopBar<MenuContent: View>: View {
     let elapsed: (Date) -> TimeInterval
     let onBack: () -> Void
     let onPause: () -> Void
+    /// 있으면 '새 퍼즐' 버튼을 둔다(웹 헤더와 같은 동그란 화살표).
+    var onNew: (() -> Void)? = nil
     @ViewBuilder let menu: () -> MenuContent
     @Environment(\.horizontalSizeClass) private var sizeClass
 
+    private var compact: Bool { sizeClass == .compact }
+
     var body: some View {
-        HStack(spacing: 8) {
+        // iPhone에서는 버튼과 간격을 줄여 이름 자리를 남긴다.
+        HStack(spacing: compact ? 6 : 8) {
             PuzzleIconButton(icon: "chevron.left", label: "뒤로", action: onBack)
             GameSymbol(kind: kind, size: 20, color: Color(Paper.ink))
             VStack(alignment: .leading, spacing: 1) {
@@ -25,8 +30,8 @@ struct PuzzleTopBar<MenuContent: View>: View {
             }
             // 폭이 모자라면 이름이 먼저 줄어들고, 타이머는 꺾이지 않는다.
             .lineLimit(1)
-            .minimumScaleFactor(0.75)
-            Spacer(minLength: 8)
+            .minimumScaleFactor(0.6)
+            Spacer(minLength: 4)
             if showTimer && isPlaying {
                 TimelineView(.periodic(from: .now, by: 0.25)) { context in
                     let seconds = Int(elapsed(context.date))
@@ -47,10 +52,13 @@ struct PuzzleTopBar<MenuContent: View>: View {
                 }
                 .fixedSize()
             }
+            if let onNew {
+                PuzzleIconButton(icon: "arrow.counterclockwise", label: "새 퍼즐", action: onNew)
+            }
             PuzzleIconButton(icon: "pause.circle", label: "일시정지", action: onPause)
                 .disabled(!isPlaying)
                 .opacity(isPlaying ? 1 : 0.4)
-            Menu(content: menu) { PuzzleIconButton.face("ellipsis") }
+            Menu(content: menu) { PuzzleIconButton.face("ellipsis", width: compact ? 36 : 40) }
                 .accessibilityLabel("더보기")
         }
         .padding(.horizontal, 10)
@@ -64,20 +72,46 @@ struct PuzzleIconButton: View {
     let icon: String
     let label: LocalizedStringKey
     let action: () -> Void
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
-        Button(action: action) { Self.face(icon) }
+        Button(action: action) { Self.face(icon, width: sizeClass == .compact ? 36 : 40) }
             .buttonStyle(.plain)
             .accessibilityLabel(label)
     }
 
-    static func face(_ icon: String) -> some View {
+    static func face(_ icon: String, width: CGFloat = 40) -> some View {
         Image(systemName: icon)
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Color(Paper.ink))
-            .frame(width: 40, height: 38)
+            .frame(width: width, height: 38)
             .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 11))
             .contentShape(Rectangle().inset(by: -3))
+    }
+}
+
+/// 상단 바 바로 아래 왼쪽의 '처음부터 다시': 같은 문제를 처음 상태로 돌린다(시간은 이어서 흐른다).
+/// 모든 퍼즐에서 이 자리 한 곳에만 둔다. 시간까지 새로 재려면 상단의 새 퍼즐을 쓴다.
+struct StartOverButton: View {
+    let enabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        HStack {
+            Button(action: action) {
+                Label("처음부터 다시", systemImage: "backward.end")
+                    .font(.footnote.weight(.medium))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(Paper.sheet), in: Capsule())
+                    .frame(minHeight: 32)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!enabled)
+            .opacity(enabled ? 1 : 0.4)
+            Spacer()
+        }
     }
 }
 
@@ -144,6 +178,8 @@ struct PuzzlePauseCover: View {
 struct PuzzleResultCard: View {
     let title: LocalizedStringKey
     let subtitle: String
+    /// 시간 위에 한 줄 더(거울네모·스위치네모: "최소 조작으로 풀었어요 · 조작 4회").
+    var note: String? = nil
     let time: String?
     let isNewBest: Bool
     let accent: UIColor
@@ -157,6 +193,9 @@ struct PuzzleResultCard: View {
             VStack(spacing: 12) {
                 Text(title).font(.system(.title2, design: .rounded, weight: .heavy))
                 Text(verbatim: subtitle).font(.subheadline).foregroundStyle(Color(Paper.inkSoft))
+                if let note {
+                    Text(verbatim: note).font(.subheadline.weight(.semibold))
+                }
                 if let time {
                     Text(verbatim: time).font(.system(size: 44, weight: .medium, design: .monospaced))
                     if isNewBest {
