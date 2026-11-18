@@ -394,7 +394,11 @@
     const maxArea = id === 5 ? customRegion().maxArea(n) : spec.maxArea;
     Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(spec.name)));
     setTimeout(() => {
-      const puzzle = E.generate(id, n, maxArea);
+      let puzzle;
+      try { puzzle = E.generate(id, n, maxArea); } catch (err) {
+        // 판을 끝내 못 만들었다(아주 드물다): 다시 만들기 카드
+        Nemo.close(); Nemo.failedPuzzle({ onRetry: () => newPuzzle(id), onOther: showLevels }); return;
+      }
       store.set('shikaku.save', null);
       Nemo.close();
       start(puzzle);

@@ -19,11 +19,21 @@ struct CalcView: View {
         PuzzleHost(kind: .calc, game: game, levels: Self.levels, subtitle: subtitle,
                    makePuzzle: { id in
                        let level = CalcLevel(rawValue: id) ?? .easy
-                       let puzzle = await Task.detached(priority: .userInitiated) {
+                       // 미리 만들어 둔 판이 있으면 기다리지 않고 바로 쓴다(PuzzleStock)
+                       let puzzle: CalcPuzzle
+                       if let ready = PuzzleStock.take(.calc, levelID: id, as: CalcPuzzle.self) {
+                           puzzle = ready
+                       } else {
+                           puzzle = await Task.detached(priority: .userInitiated) {
+                               var rng = SystemRandomNumberGenerator()
+                               return CalcEngine.generate(level, using: &rng)
+                           }.value
+                       }
+                       game.start(puzzle)
+                       PuzzleStock.refill(.calc, levelID: id) { () -> CalcPuzzle? in
                            var rng = SystemRandomNumberGenerator()
                            return CalcEngine.generate(level, using: &rng)
-                       }.value
-                       game.start(puzzle)
+                       }
                    },
                    clearSave: CalcSave.clear,
                    onStartOver: { confirmClearAll = true },

@@ -273,6 +273,54 @@
     el.querySelector('[data-yes]').onclick = () => { close(); onOk(); };
   }
 
+  // ── 미리 만든 판 보관함: 만드는 데 몇 초 걸리는 난이도의 다음 판을 하나씩 미리 만들어 둔다. 앱의 PuzzleStock과 같다. ──
+  // 게임·난이도마다 판 하나만 브라우저 저장소에 둔다(판 하나에 수 KB). 꺼내면 지우고, 판을 시작하고 3초 뒤 다음 판을
+  // 화면과 따로 도는 작업자(stock-worker.js)에서 만든다. 엔진의 난이도 기준을 바꾸면 STOCK_VERSION을 올린다.
+  const STOCK_VERSION = 1;
+  const STOCK = {
+    star: { level: 4, script: 'star-engine.js', engine: 'StarEngine' },
+    calc: { level: 5, script: 'calc-engine.js', engine: 'CalcEngine' },
+    pair: { level: 4, script: 'pair-engine.js', engine: 'PairEngine' },
+    mirror: { level: 4, script: 'mirror-engine.js', engine: 'MirrorEngine' },
+  };
+  const stockRunning = new Set();
+  const stockKey = (kind, level) => `stock.${kind}.${level}`;
+  const stock = {
+    // 미리 만든 판이 있으면 꺼내고(지운다), 없거나 버전이 다르면 null
+    take(kind, level) {
+      const s = STOCK[kind];
+      if (!s || s.level !== level) return null;
+      const v = store.get(stockKey(kind, level), null);
+      store.set(stockKey(kind, level), null);
+      return v && v.version === STOCK_VERSION ? v.puzzle : null;
+    },
+    // 다음 판을 미리 만든다. 이미 있거나 만드는 중이면 하지 않는다.
+    refill(kind, level) {
+      const s = STOCK[kind], key = stockKey(kind, level);
+      if (!s || s.level !== level || typeof Worker === 'undefined' || stockRunning.has(key)) return;
+      const cur = store.get(key, null);
+      if (cur && cur.version === STOCK_VERSION) return;
+      stockRunning.add(key);
+      setTimeout(() => {
+        const done = () => stockRunning.delete(key);
+        let w;
+        try { w = new Worker('assets/stock-worker.js'); } catch { done(); return; }
+        w.onmessage = e => { if (e.data.ok) store.set(key, { version: STOCK_VERSION, puzzle: e.data.puzzle }); w.terminate(); done(); };
+        w.onerror = () => { w.terminate(); done(); };
+        w.postMessage({ script: s.script, engine: s.engine, level });
+      }, 3000);
+    },
+  };
+
+  // 판을 끝내 만들지 못했을 때(아주 드물다): 같은 난이도로 다시 만들거나 다른 난이도를 고른다. 앱의 PuzzleFailedCard와 같다.
+  function failedPuzzle({ onRetry, onOther }) {
+    const el = overlay(`<div class="card center" role="alertdialog" aria-modal="true" aria-labelledby="fpTitle">
+      <h3 id="fpTitle">${esc(t('퍼즐을 만들지 못했어요'))}</h3>
+      <div class="actions"><button class="btn" data-other>${esc(t('다른 난이도'))}</button><button class="btn primary" data-retry data-focus>${esc(t('다시 만들기'))}</button></div></div>`);
+    el.querySelector('[data-other]').onclick = () => { close(); onOther(); };
+    el.querySelector('[data-retry]').onclick = () => { close(); onRetry(); };
+  }
+
   // ── 더보기 메뉴. build()가 돌려주는 항목으로 매번 새로 그린다. ──
   // { section }, { sep: true }, { label, icon, disabled, onClick }, { label, checked, onChange }
   function menu(button, panel, build) {
@@ -375,7 +423,7 @@
   window.Nemo = {
     store, t, setLang, get lang() { return lang; }, get langPref() { return langPref; },
     KINDS, kind, nameHTML, symbol, icon, stats, clock, esc, Timer, undoLimit, undoLabel, placeStartOver, setTheme,
-    overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, menu, topBar, newButton,
+    overlay, close, isOpen, working, levelPicker, pauseCover, result, confirmBox, failedPuzzle, stock, menu, topBar, newButton,
     fitCanvas, cssColor, onTheme, roundRect,
   };
 })();

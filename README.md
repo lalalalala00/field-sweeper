@@ -24,6 +24,9 @@
 - 헤더의 새 퍼즐 버튼: 지금 난이도로 바로 새 판. 손댄 판이 있으면 먼저 묻습니다. 난이도는 ⋯ 메뉴에서 바꿉니다.
 - 게임별 기록: 플레이 수, 완료 수, 완료율, 평균 시간, 난이도별 최고 기록. 메인 화면의 `no.`는 지금까지 시작한 판 수입니다.
 - 처음 들어간 게임은 규칙을 한 번 보여주고, ⋯ 메뉴의 "규칙 보기"로 다시 볼 수 있습니다.
+- 메인 화면: 한국어 화면에서는 게임 이름을 한국어로 쓰고 옆에 영어 이름을 작게 붙입니다(다른 언어는 영어 이름만). 소개 문구 옆(휴대폰은 구분선 아래)의 번호 줄은 마지막에 연 게임에 동그라미를 치고, 누르면 그 카드로 갑니다.
+- 오래 걸리는 난이도(별네모 전문가, 셈네모 지옥, 짝네모 전문가, 거울네모 전문가)는 다음 판을 하나씩 미리 만들어 둡니다. 판을 시작하고 3초 뒤 화면과 따로(앱은 낮은 우선순위, 웹은 Web Worker) 만들어 기기에 저장하고(판 하나에 1KB 안팎), 새 퍼즐을 누르면 기다리지 않고 바로 꺼내 씁니다. 앱은 저전력 모드에서는 만들지 않습니다.
+- 아주 드물게 판을 끝내 만들지 못하면 "퍼즐을 만들지 못했어요" 카드에서 다시 만들거나 다른 난이도를 고릅니다(앱은 꺼지지 않습니다).
 - 한국어, 영어, 일본어, 중국어(간체)
 
 ### 되돌리기
@@ -53,10 +56,11 @@
 ```
 FieldSweeper.xcodeproj   iOS 앱 프로젝트 (폴더 안 파일을 자동으로 포함)
 FieldSweeper/            앱 코드 (SwiftUI + UIKit 보드)
-  Model/                 게임 규칙·문제 생성(*Engine.swift), 진행·저장, 기록, 되돌리기 횟수(UndoLimit)
-  UI/                    화면
+  Model/                 게임 규칙·문제 생성(*Engine.swift), 게임 진행(*Game.swift), 저장, 기록, 되돌리기 횟수(UndoLimit), 규칙 문구(GameRules)
+  UI/                    화면. 퍼즐 게임은 공통 틀(PuzzleHost)에 판·상태·조작만 끼운다
+  PrivacyInfo.xcprivacy  개인정보 매니페스트(UserDefaults 사용 사유)
   Localizable.xcstrings  앱 문구와 번역
-docs/                    GitHub Pages로 배포되는 웹
+docs/                    웹 버전(GitHub Pages로 배포할 수 있다)
   index.html             메인 화면 (게임 카드, 기록, 설정)
   minesweeper.html       지뢰찾기
   sudoku.html            스도쿠
@@ -75,6 +79,7 @@ docs/                    GitHub Pages로 배포되는 웹
     rules.js             게임별 한 줄 설명·규칙·조작법과 번역
     paper.css            메모지 스타일과 게임별 색
     i18n.js              앱 문구에서 만든 웹 번역표
+    stock-worker.js      미리 만들어 둘 판을 화면과 따로 만드는 작업자
 scripts/
   gen-web-i18n.py        Localizable.xcstrings → docs/assets/i18n.js
 ```
@@ -93,15 +98,19 @@ Xcode가 없어도 규칙 코드는 Command Line Tools의 `swiftc`로 컴파일�
 python3 -m http.server 8000 -d docs
 ```
 
-브라우저에서 `http://localhost:8000`을 엽니다. 저장소 Settings → Pages에서 `main` 브랜치의 `/docs` 폴더를 배포 대상으로 지정하면 다음 주소로 열립니다.
+브라우저에서 `http://localhost:8000`을 엽니다. 저장소 Settings → Pages에서 `main` 브랜치의 `/docs` 폴더를 배포 대상으로 지정하면 다음 주소로 열립니다. 지금은 Pages를 꺼 두어서 열리지 않습니다.
 
 - 메인 화면: `https://lalalalala00.github.io/field-sweeper/`
 - 개인정보 처리방침: `https://lalalalala00.github.io/field-sweeper/privacy.html`
+
+앱 설정 화면의 개인정보 처리방침 링크와 App Store Connect의 개인정보 처리방침·지원 URL은 누구나 열 수 있는 주소여야 합니다. 출시 전에 이 주소가 열리도록 해 두고, `privacy.html`의 문의 이메일 자리(`[연락처 이메일]`, `[contact email]`)를 채웁니다.
 
 ## 고칠 때 함께 바꿀 곳
 
 - **게임 규칙·문제 생성**: 앱(Swift)과 웹(JavaScript)에 각각 있습니다. `FieldSweeper/Model/*Engine.swift`와 `docs/assets/*-engine.js`를 함께 고칩니다.
 - **게임 자체 난이도**: `docs/assets/common.js`의 `KINDS.weight`와 `FieldSweeper/Model/GameKind.swift`의 `weight`가 같아야 합니다.
+- **미리 만든 판**: 엔진의 난이도 기준을 바꾸면 `FieldSweeper/Model/PuzzleStock.swift`의 `version`과 `docs/assets/common.js`의 `STOCK_VERSION`을 올립니다. 그러면 기기에 남은 옛 기준 판을 버리고 새로 만듭니다. 미리 만들 난이도 목록도 두 곳이 같아야 합니다.
 - **되돌리기 횟수**: `FieldSweeper/Model/UndoLimit.swift`와 `docs/assets/common.js`의 표가 같아야 합니다.
-- **규칙 문구**: `docs/assets/rules.js`에 있습니다. `{ text, app: true }`로 적은 줄은 앱 전용 기능이라 웹에서는 보이지 않습니다. 앱에 규칙 화면을 만들 때 이 문구를 옮깁니다.
+- **규칙 문구**: 웹은 `docs/assets/rules.js`, 앱은 `FieldSweeper/Model/GameRules.swift`에 같은 내용이 있습니다. 웹의 `{ text, app: true }` 줄은 앱 전용 기능(Apple Pencil 등)이라 웹에서는 보이지 않습니다.
+- **게임 이름**: 영어·한국어 이름이 `docs/assets/common.js`의 `KINDS`(en, ko)와 `FieldSweeper/Model/GameKind.swift`에 있습니다.
 - **문구 번역**: 웹은 앱의 `Localizable.xcstrings`에서 만든 `docs/assets/i18n.js`를 씁니다. 앱에 문구를 추가했다면 `python3 scripts/gen-web-i18n.py`로 다시 만듭니다. 웹에만 있는 문구는 `common.js`의 번역표에 있습니다.

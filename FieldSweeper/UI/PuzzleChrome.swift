@@ -223,6 +223,33 @@ struct PuzzleResultCard: View {
     }
 }
 
+/// 판을 끝내 만들지 못했을 때(아주 드물다). 같은 난이도로 다시 만들거나 다른 난이도를 고른다.
+struct PuzzleFailedCard: View {
+    let onRetry: () -> Void
+    let onOtherLevel: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.4).ignoresSafeArea()
+            VStack(spacing: 12) {
+                Text("퍼즐을 만들지 못했어요").font(.system(.title3, design: .rounded, weight: .heavy))
+                HStack(spacing: 8) {
+                    Button(action: onOtherLevel) { Text("다른 난이도").frame(maxWidth: .infinity) }
+                        .buttonStyle(PaperButtonStyle())
+                    Button(action: onRetry) { Text("다시 만들기").frame(maxWidth: .infinity) }
+                        .buttonStyle(PaperButtonStyle(prominent: true))
+                }
+                .padding(.top, 4)
+            }
+            .multilineTextAlignment(.center)
+            .padding(24)
+            .frame(maxWidth: 360)
+            .background(Color(Paper.bg), in: RoundedRectangle(cornerRadius: 22))
+            .padding(24)
+        }
+    }
+}
+
 /// 퍼즐을 만드는 동안 보여주는 작은 창.
 /// 오래 걸리는 난이도(expected가 있을 때)는 도는 표시 대신 진행 막대와 안내를 보여준다.
 /// 막대는 예상 시간에 맞춰 차오르되, 끝나기 전에는 꽉 차지 않고 거의 다 찬 채로 기다린다.

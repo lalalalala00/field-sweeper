@@ -421,6 +421,11 @@ window.NEMO_I18N = {
 "他の領域と重なっています",
 "与其他区域重叠"
 ],
+"다시 만들기": [
+"Try again",
+"もう一度作る",
+"重新生成"
+],
 "다시 풀기": [
 "Start over",
 "やり直す",
@@ -1295,6 +1300,11 @@ window.NEMO_I18N = {
 "The board is divided into regions by bold lines.",
 "盤面は太線でいくつかの区域に分かれています。",
 "棋盘由粗线分成多个区域。"
+],
+"퍼즐을 만들지 못했어요": [
+"Couldn’t make a puzzle",
+"パズルを作れませんでした",
+"未能生成谜题"
 ],
 "펑, 지뢰를 밟았어요": [
 "Boom! You hit a mine",

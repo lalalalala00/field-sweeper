@@ -252,7 +252,11 @@
     store.set('switch.lastLevel', id);
     // 최근에 낸 판(회전·뒤집기 포함)은 다시 내지 않는다. 화면에는 보이지 않는다.
     const recent = store.get('switch.recent', []);
-    const puzzle = E.generate(id, recent);
+    let puzzle;
+    try { puzzle = E.generate(id, recent); } catch (err) {
+      // 판을 끝내 못 만들었다(아주 드물다): 다시 만들기 카드
+      Nemo.close(); Nemo.failedPuzzle({ onRetry: () => newPuzzle(id), onOther: showLevels }); return;
+    }
     store.set('switch.recent', recent.concat(E.canonicalKey(puzzle.start, puzzle.size)).slice(-RECENT));
     store.set('switch.save', null);
     Nemo.close();

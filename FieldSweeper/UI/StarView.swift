@@ -24,11 +24,21 @@ struct StarView: View {
         PuzzleHost(kind: .star, game: game, levels: Self.levels, subtitle: subtitle,
                    makePuzzle: { id in
                        let level = StarLevel(rawValue: id) ?? .easy
-                       let puzzle = await Task.detached(priority: .userInitiated) {
+                       // 미리 만들어 둔 판이 있으면 기다리지 않고 바로 쓴다(PuzzleStock)
+                       let puzzle: StarPuzzle
+                       if let ready = PuzzleStock.take(.star, levelID: id, as: StarPuzzle.self) {
+                           puzzle = ready
+                       } else {
+                           puzzle = await Task.detached(priority: .userInitiated) {
+                               var rng = SystemRandomNumberGenerator()
+                               return StarEngine.generate(level, using: &rng)
+                           }.value
+                       }
+                       game.start(puzzle)
+                       PuzzleStock.refill(.star, levelID: id) { () -> StarPuzzle? in
                            var rng = SystemRandomNumberGenerator()
                            return StarEngine.generate(level, using: &rng)
-                       }.value
-                       game.start(puzzle)
+                       }
                    },
                    clearSave: StarSave.clear,
                    onStartOver: { confirmClear = true },

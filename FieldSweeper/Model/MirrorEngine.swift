@@ -262,36 +262,38 @@ enum MirrorEngine {
     /// 전문가: 이 시간 동안 만들어 보고 가장 많이 헤매는 판. hardestEnough 이상이면 바로 낸다.
     static let hardestSeconds = 1.5, hardestEnough = 70
 
-    static func generate<R: RandomNumberGenerator>(_ level: MirrorLevel, using rng: inout R) -> MirrorPuzzle {
+    /// 아주 드물게 조건에 맞는 판을 끝내 못 만들면 nil(화면에서 '다시 만들기'를 보여준다).
+    static func generate<R: RandomNumberGenerator>(_ level: MirrorLevel, using rng: inout R) -> MirrorPuzzle? {
         if level.hardest {
             let until = Date.now.addingTimeInterval(hardestSeconds)
             var best: (puzzle: MirrorPuzzle, effort: Int)?
             while best == nil || Date.now < until {
-                let p = generateOne(level, using: &rng), e = effort(p)
+                guard let p = generateOne(level, using: &rng) else { break }
+                let e = effort(p)
                 if best.map({ e > $0.effort }) ?? true { best = (p, e) }
                 if e >= hardestEnough { break }
             }
-            return best!.puzzle
+            return best?.puzzle
         }
         guard let band = level.effort else { return generateOne(level, using: &rng) }
         let deadline = Date.now.addingTimeInterval(1.5)
         var best: (puzzle: MirrorPuzzle, gap: Int)?
         for _ in 0..<3000 {
             if best != nil && Date.now > deadline { break }
-            let p = generateOne(level, using: &rng)
+            guard let p = generateOne(level, using: &rng) else { break }
             let e = effort(p)
             if band.contains(e) { return p }
             let gap = e < band.lowerBound ? band.lowerBound - e : e - band.upperBound
             if best.map({ gap < $0.gap }) ?? true { best = (p, gap) }
         }
-        return best!.puzzle
+        return best?.puzzle
     }
 
     /// 1. 시작점에서 빛을 쏘며 지나는 새 칸에 무작위로 거울을 놓아 정답 경로를 만든다.
     /// 2. 그중 일부를 고정 거울로 바꾸고, 경로 밖에 헷갈리게 하는 고정 거울과 벽을 둔다.
     /// 3. 경로 위 빈칸에 별을 두고, 다른 방향 조합도 성공하면 그 조합이 지나지 않는 칸에 별을 더한다.
     /// 회전 거울 방향 조합 중 딱 하나만 성공하는 판만 낸다.
-    private static func generateOne<R: RandomNumberGenerator>(_ level: MirrorLevel, using rng: inout R) -> MirrorPuzzle {
+    private static func generateOne<R: RandomNumberGenerator>(_ level: MirrorLevel, using rng: inout R) -> MirrorPuzzle? {
         let n = level.size
         for _ in 0..<5000 {
             let want = Int.random(in: level.mirrors, using: &rng) + level.fixedOnPath
@@ -346,7 +348,7 @@ enum MirrorEngine {
             puzzle.stars.sort()
             return puzzle
         }
-        fatalError("거울네모 문제를 만들지 못했다")
+        return nil
     }
 
     /// 처음 보여줄 방향: 회전 거울의 절반 이상은 정답과 다르게 섞는다(최소 조작 수가 너무 적지 않게).

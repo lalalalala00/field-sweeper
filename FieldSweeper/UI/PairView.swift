@@ -19,11 +19,21 @@ struct PairView: View {
         PuzzleHost(kind: .pair, game: game, levels: Self.levels, subtitle: subtitle,
                    makePuzzle: { id in
                        let level = PairLevel(rawValue: id) ?? .easy
-                       let puzzle = await Task.detached(priority: .userInitiated) {
+                       // 미리 만들어 둔 판이 있으면 기다리지 않고 바로 쓴다(PuzzleStock)
+                       let puzzle: PairPuzzle
+                       if let ready = PuzzleStock.take(.pair, levelID: id, as: PairPuzzle.self) {
+                           puzzle = ready
+                       } else {
+                           puzzle = await Task.detached(priority: .userInitiated) {
+                               var rng = SystemRandomNumberGenerator()
+                               return PairEngine.generate(level, using: &rng)
+                           }.value
+                       }
+                       game.start(puzzle)
+                       PuzzleStock.refill(.pair, levelID: id) { () -> PairPuzzle? in
                            var rng = SystemRandomNumberGenerator()
                            return PairEngine.generate(level, using: &rng)
-                       }.value
-                       game.start(puzzle)
+                       }
                    },
                    clearSave: PairSave.clear,
                    onStartOver: { confirmClear = true },

@@ -18,7 +18,8 @@ struct PuzzleHost<Game: HostedPuzzle & Observable, Board: View, Status: View, Co
     let levels: [PuzzleLevelInfo]
     let subtitle: String
     /// 새 판을 만들어 시작한다(오래 걸리면 안에서 따로 돌린다). 끝나면 돌아온다.
-    let makePuzzle: (Int) async -> Void
+    /// 판을 끝내 못 만들면 PuzzleGenerationFailed를 던지고, 그러면 '다시 만들기' 카드를 보여준다.
+    let makePuzzle: (Int) async throws -> Void
     /// 저장을 지운다(완성했을 때, 새 판을 시작할 때).
     let clearSave: () -> Void
     /// 판 바로 위 왼쪽 '처음부터 다시'를 누르면(게임마다 확인을 묻고 처음 상태로 돌린다).
@@ -37,6 +38,8 @@ struct PuzzleHost<Game: HostedPuzzle & Observable, Board: View, Status: View, Co
     @ViewBuilder let extraOverlay: (_ newPuzzle: @escaping (Int) -> Void) -> Extra
 
     @State private var generating: Int?
+    /// 판을 못 만든 난이도(다시 만들기 카드를 띄운다)
+    @State private var failed: Int?
     @State private var showLevels = false
     @State private var isPaused = false
     @State private var showResult = false
@@ -165,6 +168,10 @@ struct PuzzleHost<Game: HostedPuzzle & Observable, Board: View, Status: View, Co
             PuzzleWorkingCard(text: String(localized: "\(tr(level(id)?.name ?? "")) 퍼즐을 만들고 있어요", bundle: AppLanguage.bundle),
                               expected: GenerationTime.expected(kind, levelID: id))
                 .transition(.opacity)
+        } else if let id = failed {
+            PuzzleFailedCard(onRetry: { failed = nil; newPuzzle(id) },
+                             onOtherLevel: { failed = nil; showLevels = true })
+                .transition(.opacity)
         } else if showLevels {
             let best = StatsStore.load(kind).bestByDifficulty
             PuzzleLevelPicker(
@@ -193,7 +200,7 @@ struct PuzzleHost<Game: HostedPuzzle & Observable, Board: View, Status: View, Co
 
     /// 상단 '새 퍼즐': 지금 난이도로 새 판. 손댄 판이 있으면 먼저 묻고, 아직 판이 없으면 난이도를 고르게 한다.
     private func newTapped() {
-        guard generating == nil else { return }
+        guard generating == nil, failed == nil else { return }
         guard let id = game.levelID else { showLevels = true; return }
         if game.status == .playing && game.counted { confirmNew = true } else { newPuzzle(id) }
     }
@@ -209,7 +216,13 @@ struct PuzzleHost<Game: HostedPuzzle & Observable, Board: View, Status: View, Co
         game.pause()
         generating = id
         Task {
-            await makePuzzle(id)
+            do {
+                try await makePuzzle(id)
+            } catch {
+                generating = nil
+                failed = id
+                return
+            }
             clearSave()
             game.save()
             generating = nil
@@ -279,3 +292,6 @@ struct PuzzleNotice: View {
 func trf(_ key: String.LocalizationValue) -> String {
     String(localized: key, bundle: AppLanguage.bundle)
 }
+
+/// 판을 끝내 만들지 못했을 때 makePuzzle이 던지는 오류(아주 드물다).
+struct PuzzleGenerationFailed: Error {}

@@ -242,15 +242,22 @@ window.NumberPuzzle = function (cfg) {
     store.set(cfg.kind + '.lastLevel', id);
     G.timer.pause();
     const level = cfg.levels.find(l => l.id === id);
-    Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(level.name)), cfg.kind, level.name);
+    // 미리 만들어 둔 판이 있으면 '만들고 있어요' 없이 바로 시작한다(Nemo.stock)
+    const ready = Nemo.stock.take(cfg.kind, id);
+    if (!ready) Nemo.working(t('{0} 퍼즐을 만들고 있어요', t(level.name)), cfg.kind, level.name);
     // 창이 먼저 그려지도록 한 프레임 뒤에 만든다.
     setTimeout(() => {
-      const puzzle = cfg.generate(id);
+      let puzzle = ready;
+      if (!puzzle) try { puzzle = cfg.generate(id); } catch (err) {
+        // 판을 끝내 못 만들었다(아주 드물다): 다시 만들기 카드
+        Nemo.close(); Nemo.failedPuzzle({ onRetry: () => newPuzzle(id), onOther: showLevels }); return;
+      }
       store.set(saveKey, null);
       Nemo.close();
       start(puzzle);
       save();
-    }, 40);
+      Nemo.stock.refill(cfg.kind, id);
+    }, ready ? 0 : 40);
   }
   function pause() {
     if (G.status !== 'playing' || Nemo.isOpen()) return;

@@ -20,11 +20,20 @@ struct MirrorView: View {
         PuzzleHost(kind: .mirror, game: game, levels: Self.levels, subtitle: subtitle,
                    makePuzzle: { id in
                        let level = MirrorLevel(rawValue: id) ?? .easy
-                       let puzzle = await Task.detached(priority: .userInitiated) {
+                       // 미리 만들어 둔 판이 있으면 기다리지 않고 바로 쓴다(PuzzleStock)
+                       var made = PuzzleStock.take(.mirror, levelID: id, as: MirrorPuzzle.self)
+                       if made == nil {
+                           made = await Task.detached(priority: .userInitiated) {
+                               var rng = SystemRandomNumberGenerator()
+                               return MirrorEngine.generate(level, using: &rng)
+                           }.value
+                       }
+                       guard let puzzle = made else { throw PuzzleGenerationFailed() }
+                       game.start(puzzle)
+                       PuzzleStock.refill(.mirror, levelID: id) { () -> MirrorPuzzle? in
                            var rng = SystemRandomNumberGenerator()
                            return MirrorEngine.generate(level, using: &rng)
-                       }.value
-                       game.start(puzzle)
+                       }
                    },
                    clearSave: MirrorSave.clear,
                    onStartOver: { confirmRestart = true },
